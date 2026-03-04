@@ -2,7 +2,7 @@
 # Copy this file to your project's .github/workflows/ directory.
 #
 # Prerequisites:
-#   1. A canopy.yml config file in your repo root (run `canopy init` or create manually)
+#   1. A canopy.yml config file in your repo root (optional, sensible defaults apply)
 #   2. Repository Settings > Actions > Workflow permissions > "Read and write permissions"
 
 name: Canopy
@@ -16,6 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -23,8 +24,8 @@ jobs:
       - uses: bruno-portfolio/canopy-code@main
         # Optional overrides:
         # with:
+        #   strategy: push          # 'pr' (default) or 'push' for repos without branch protection
         #   output-svg: docs/canopy.svg
         #   output-html: docs/canopy.html
         #   config: canopy.yml
-        #   commit: "true"
         #   commit-message: "docs: update canopy visualization"

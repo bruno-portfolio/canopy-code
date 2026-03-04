@@ -116,34 +116,28 @@ on:
   push:
     branches: [main]
 
-permissions:
-  contents: write
-
 jobs:
   canopy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0          # full history for churn data
+          fetch-depth: 0    # full history for churn data
+      - uses: bruno-portfolio/canopy-code@main
+```
 
-      - uses: actions/setup-python@v5
+By default, the action creates a **pull request** with the updated diagram.
+This works with branch protection rules and required status checks.
+
+For repos without branch protection, you can push directly:
+
+```yaml
+      - uses: bruno-portfolio/canopy-code@main
         with:
-          python-version: "3.12"
-
-      - name: Install Canopy
-        run: pip install "canopy-code[tools]"
-
-      - name: Generate diagram
-        run: canopy run . --output docs/canopy.svg --html docs/canopy.html
-
-      - name: Commit artifacts
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/canopy.svg docs/canopy.html
-          git diff --cached --quiet || git commit -m "docs: update canopy diagram [skip ci]"
-          git push
+          strategy: push
 ```
 
 > **Note:** `fetch-depth: 0` is required for accurate churn data. Without
