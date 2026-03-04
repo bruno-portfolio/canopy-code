@@ -11,13 +11,25 @@
     background: #06080c;
     color: #c9d1d9;
     font-family: monospace;
-    min-height: 100vh;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  @supports (height: 100dvh) {
+    body { height: 100dvh; }
   }
 
   .container {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 32px 24px;
+    padding: 16px 24px;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  @supports (height: 100dvh) {
+    .container { height: 100dvh; }
   }
 
   .header {
@@ -43,17 +55,55 @@
     color: #7d8590;
   }
 
+  .search-box {
+    display: flex;
+    align-items: center;
+    margin-left: auto;
+    gap: 6px;
+  }
+
+  #search-input {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 12px;
+    font-family: monospace;
+    color: #c9d1d9;
+    width: 160px;
+    outline: none;
+  }
+
+  #search-input:focus {
+    border-color: #58a6ff;
+  }
+
+  #search-count {
+    font-size: 10px;
+    color: #7d8590;
+  }
+
+  #search-clear {
+    background: none;
+    border: none;
+    color: #7d8590;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 0 4px;
+    display: none;
+  }
+
   .subtitle {
     font-size: 12px;
     color: #484f58;
-    margin-bottom: 24px;
+    margin-bottom: 12px;
     letter-spacing: 0.5px;
   }
 
   .legend {
     display: flex;
     gap: 20px;
-    margin-bottom: 20px;
+    margin-bottom: 8px;
     flex-wrap: wrap;
   }
 
@@ -94,6 +144,9 @@
     border-radius: 12px;
     overflow: hidden;
     cursor: grab;
+    flex: 1;
+    min-height: 0;
+    contain: layout paint;
   }
 
   .orbital-container:active {
@@ -104,6 +157,8 @@
     width: 100%;
     height: 100%;
     display: block;
+    transform-origin: 0 0;
+    will-change: transform;
   }
 
   [data-module] {
@@ -115,14 +170,47 @@
     filter: brightness(1.5) drop-shadow(0 0 12px rgba(255,255,255,0.2));
   }
 
-  /* Disable expensive filters during zoom/pan for smooth interaction */
-  .interacting svg * {
+  /* Perf: shared rules for .is-moving (during interaction) and .zoomed-in (scale > 1.5).
+     Filter IDs must match svg.py _render_defs(). */
+  .is-moving [data-module],
+  .is-moving #canvas svg circle,
+  .zoomed-in [data-module],
+  .zoomed-in #canvas svg circle[filter] {
     filter: none !important;
-    transition: none !important;
   }
-  .interacting svg animate,
-  .interacting svg animateTransform {
-    animation-play-state: paused;
+
+  .is-moving #canvas svg circle[filter*="softGlow"],
+  .is-moving #canvas svg circle[filter*="churnPulse"],
+  .zoomed-in #canvas svg circle[filter*="softGlow"],
+  .zoomed-in #canvas svg circle[filter*="churnPulse"] {
+    visibility: hidden !important;
+  }
+
+  /* .is-moving only: hide deps & pause CSS animations during drag/wheel */
+  .is-moving #canvas svg line,
+  .is-moving #canvas svg path {
+    filter: none !important;
+    animation-play-state: paused !important;
+  }
+
+  .is-moving #canvas svg line,
+  .is-moving #canvas svg path[fill="none"] {
+    visibility: hidden !important;
+  }
+
+  /* .zoomed-in only: pause SVG DOM animations */
+  .zoomed-in #canvas svg animate,
+  .zoomed-in #canvas svg animateTransform {
+    animation-play-state: paused !important;
+  }
+
+  .search-dim {
+    opacity: 0.12;
+    pointer-events: none;
+  }
+
+  .search-highlight {
+    filter: brightness(1.5) drop-shadow(0 0 8px rgba(88,166,255,0.5));
   }
 
   .tooltip {
@@ -152,12 +240,13 @@
   .stats-bar {
     display: flex;
     gap: 32px;
-    margin-top: 20px;
-    padding: 16px 20px;
+    margin-top: 8px;
+    padding: 10px 20px;
     background: #0d1117;
     border: 1px solid #21262d;
     border-radius: 8px;
     flex-wrap: wrap;
+    flex-shrink: 0;
   }
 
   .stat { display: flex; flex-direction: column; gap: 4px; }
@@ -166,6 +255,139 @@
   .stat-value.green { color: #2ea043; }
   .stat-value.yellow { color: #d29922; }
   .stat-value.red { color: #da3633; }
+
+  #sidebar-toggle {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 20;
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 6px;
+    color: #7d8590;
+    cursor: pointer;
+    font-size: 18px;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #sidebar-toggle:hover {
+    color: #e6edf3;
+  }
+
+  #sidebar {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 240px;
+    height: 100%;
+    background: #161b22ee;
+    border-left: 1px solid #30363d;
+    transform: translateX(100%);
+    transition: transform 0.2s ease;
+    z-index: 15;
+    display: flex;
+    flex-direction: column;
+  }
+
+  #sidebar.open {
+    transform: translateX(0);
+  }
+
+  .sidebar-header {
+    padding: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #e6edf3;
+    border-bottom: 1px solid #30363d;
+  }
+
+  #sidebar-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 4px 0;
+  }
+
+  #sidebar-list::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  #sidebar-list::-webkit-scrollbar-thumb {
+    background: #30363d;
+    border-radius: 2px;
+  }
+
+  .sidebar-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 12px;
+    font-size: 11px;
+    color: #c9d1d9;
+    cursor: pointer;
+  }
+
+  .sidebar-item:hover {
+    background: #1a1f2b;
+  }
+
+  .sidebar-mi {
+    font-weight: 600;
+    font-size: 10px;
+  }
+
+  #shortcuts-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    background: rgba(0,0,0,0.7);
+    align-items: center;
+    justify-content: center;
+  }
+
+  #shortcuts-overlay.visible {
+    display: flex;
+  }
+
+  .shortcuts-modal {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    padding: 24px;
+    min-width: 280px;
+  }
+
+  .shortcuts-modal h2 {
+    font-size: 14px;
+    color: #e6edf3;
+    margin-bottom: 16px;
+  }
+
+  .shortcuts-grid {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 8px 16px;
+    align-items: center;
+  }
+
+  .shortcuts-grid kbd {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 11px;
+    font-family: monospace;
+    color: #e6edf3;
+  }
+
+  .shortcuts-grid span {
+    font-size: 12px;
+    color: #7d8590;
+  }
 </style>
 </head>
 <body>
@@ -175,7 +397,12 @@
     <h1>canopy</h1>
     <span class="badge">canopy-code</span>
     <span class="badge">9 modules</span>
-    <span class="badge">2,395 lines</span>
+    <span class="badge">2,803 lines</span>
+    <div class="search-box">
+      <input id="search-input" placeholder="Search modules..." />
+      <span id="search-count"></span>
+      <button id="search-clear">&times;</button>
+    </div>
   </div>
   <p class="subtitle">ORBITAL CODE HEALTH</p>
 
@@ -189,6 +416,11 @@
   </div>
 
   <div class="orbital-container" id="canvas">
+    <button id="sidebar-toggle">&#9776;</button>
+    <div id="sidebar">
+      <div class="sidebar-header">Modules</div>
+      <div id="sidebar-list"></div>
+    </div>
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 800" width="100%" height="100%">
 <defs>
 <radialGradient id="bgGrad" cx="50%" cy="50%" r="50%"><stop offset="0%" stop-color="#111820"/><stop offset="50%" stop-color="#0a0e14"/><stop offset="100%" stop-color="#06080c"/></radialGradient>
@@ -265,60 +497,60 @@
 <text x="440.6" y="237.2" font-family="monospace" font-size="8" font-weight="600" fill="#484f58" text-anchor="start" transform="rotate(-70 440.6 237.2)">Layout</text>
 <text x="415.4" y="168.3" font-family="monospace" font-size="8" font-weight="600" fill="#484f58" text-anchor="start" transform="rotate(-70 415.4 168.3)">Render</text>
 <text x="390.3" y="99.4" font-family="monospace" font-size="8" font-weight="600" fill="#484f58" text-anchor="start" transform="rotate(-70 390.3 99.4)">Uncategorized</text>
-<line x1="500.0" y1="400.0" x2="708.8" y2="168.1" stroke="#bc8cff" stroke-width="0.5" opacity="0.12"/>
-<line x1="500.0" y1="400.0" x2="466.6" y2="81.8" stroke="#bc8cff" stroke-width="0.5" opacity="0.12"/>
-<line x1="500.0" y1="400.0" x2="580.9" y2="458.8" stroke="#bc8cff" stroke-width="0.5" opacity="0.12"/>
-<line x1="500.0" y1="400.0" x2="446.4" y2="564.8" stroke="#bc8cff" stroke-width="0.5" opacity="0.12"/>
-<line x1="500.0" y1="400.0" x2="253.3" y2="400.0" stroke="#bc8cff" stroke-width="0.5" opacity="0.12"/>
-<line x1="500.0" y1="400.0" x2="708.8" y2="168.1" stroke="#bc8cff" stroke-width="0.5" opacity="0.12"/>
+<line x1="549.0" y1="400.0" x2="708.8" y2="168.1" stroke="#bc8cff" stroke-width="0.5" opacity="0.12"/>
+<line x1="549.0" y1="400.0" x2="466.6" y2="81.8" stroke="#bc8cff" stroke-width="0.5" opacity="0.12"/>
+<line x1="549.0" y1="400.0" x2="580.9" y2="458.8" stroke="#bc8cff" stroke-width="0.5" opacity="0.12"/>
+<line x1="549.0" y1="400.0" x2="446.4" y2="564.8" stroke="#bc8cff" stroke-width="0.5" opacity="0.12"/>
+<line x1="549.0" y1="400.0" x2="253.3" y2="400.0" stroke="#bc8cff" stroke-width="0.5" opacity="0.12"/>
+<line x1="500.0" y1="351.0" x2="708.8" y2="168.1" stroke="#bc8cff" stroke-width="0.5" opacity="0.12"/>
 <path d="M466.6,81.8 Q561.4,207.4 708.8,168.1" fill="none" stroke="#58a6ff" stroke-width="0.8" opacity="0.2"/>
 <path d="M466.6,81.8 Q516.6,309.2 580.9,458.8" fill="none" stroke="#58a6ff" stroke-width="0.8" opacity="0.2"/>
 <path d="M580.9,458.8 Q601.4,339.4 708.8,168.1" fill="none" stroke="#58a6ff" stroke-width="0.8" opacity="0.2"/>
 <path d="M446.4,564.8 Q554.3,376.5 708.8,168.1" fill="none" stroke="#58a6ff" stroke-width="0.8" opacity="0.2"/>
-<path d="M446.4,564.8 Q481.3,457.7 500.0,400.0" fill="none" stroke="#58a6ff" stroke-width="0.8" opacity="0.2"/>
-<path d="M446.4,564.8 Q481.3,457.7 500.0,400.0" fill="none" stroke="#58a6ff" stroke-width="0.8" opacity="0.2"/>
-<path d="M253.3,400.0 Q413.7,400.0 500.0,400.0" fill="none" stroke="#58a6ff" stroke-width="0.8" opacity="0.2"/>
+<path d="M446.4,564.8 Q481.3,440.5 500.0,351.0" fill="none" stroke="#58a6ff" stroke-width="0.8" opacity="0.2"/>
+<path d="M446.4,564.8 Q481.3,474.8 500.0,449.0" fill="none" stroke="#58a6ff" stroke-width="0.8" opacity="0.2"/>
+<path d="M253.3,400.0 Q413.7,382.9 500.0,351.0" fill="none" stroke="#58a6ff" stroke-width="0.8" opacity="0.2"/>
 <path d="M253.3,400.0 Q394.9,457.7 446.4,564.8" fill="none" stroke="#58a6ff" stroke-width="0.8" opacity="0.2"/>
-<path d="M253.3,400.0 Q413.7,400.0 500.0,400.0" fill="none" stroke="#58a6ff" stroke-width="0.8" opacity="0.2"/>
+<path d="M253.3,400.0 Q413.7,417.1 500.0,449.0" fill="none" stroke="#58a6ff" stroke-width="0.8" opacity="0.2"/>
 <g data-module="canopy.config">
-<circle cx="500.0" cy="400.0" r="87.5" fill="#2ea04355" opacity="0.1" filter="url(#softGlow)"/>
-<circle cx="501.0" cy="401.0" r="35.0" fill="#000000" opacity="0.3"/>
-<circle cx="500.0" cy="400.0" r="35.0" fill="#2ea043" filter="url(#nodeGlow)"/>
-<circle cx="500.0" cy="389.5" r="21.0" fill="#56d364" opacity="0.15"/>
-<circle cx="494.8" cy="387.8" r="7.0" fill="#ffffff" opacity="0.08"/>
-<circle cx="503.4" cy="411.6" r="2.9" fill="#1b1f23" opacity="0.7"/>
-<circle cx="495.3" cy="393.4" r="1.8" fill="#1b1f23" opacity="0.7"/>
-<text x="500.0" y="400.0" font-family="monospace" font-size="11" font-weight="700" fill="#c9d1d9" text-anchor="middle" dy="0.35em">config</text>
-<text x="500.0" y="449.0" font-family="monospace" font-size="7" fill="#484f58" text-anchor="middle" dy="0.35em">159 loc</text>
+<circle cx="500.0" cy="351.0" r="87.5" fill="#2ea04355" opacity="0.1" filter="url(#softGlow)"/>
+<circle cx="501.0" cy="352.0" r="35.0" fill="#000000" opacity="0.3"/>
+<circle cx="500.0" cy="351.0" r="35.0" fill="#2ea043" filter="url(#nodeGlow)"/>
+<circle cx="500.0" cy="340.5" r="21.0" fill="#56d364" opacity="0.15"/>
+<circle cx="494.8" cy="338.8" r="7.0" fill="#ffffff" opacity="0.08"/>
+<circle cx="478.4" cy="347.6" r="1.8" fill="#1b1f23" opacity="0.7"/>
+<circle cx="484.2" cy="336.8" r="1.5" fill="#1b1f23" opacity="0.7"/>
+<text x="500.0" y="351.0" font-family="monospace" font-size="11" font-weight="700" fill="#c9d1d9" text-anchor="middle" dy="0.35em">config</text>
+<text x="500.0" y="400.0" font-family="monospace" font-size="7" fill="#484f58" text-anchor="middle" dy="0.35em">159 loc</text>
 </g>
 <g data-module="canopy.cli">
-<circle cx="500.0" cy="400.0" r="87.5" fill="#2ea04355" opacity="0.1" filter="url(#softGlow)"/>
-<circle cx="501.0" cy="401.0" r="35.0" fill="#000000" opacity="0.3"/>
-<circle cx="500.0" cy="400.0" r="35.0" fill="#2ea043" filter="url(#nodeGlow)"/>
-<circle cx="500.0" cy="389.5" r="21.0" fill="#56d364" opacity="0.15"/>
-<circle cx="494.8" cy="387.8" r="7.0" fill="#ffffff" opacity="0.08"/>
-<text x="500.0" y="400.0" font-family="monospace" font-size="11" font-weight="700" fill="#c9d1d9" text-anchor="middle" dy="0.35em">cli</text>
-<text x="500.0" y="449.0" font-family="monospace" font-size="7" fill="#484f58" text-anchor="middle" dy="0.35em">110 loc</text>
+<circle cx="549.0" cy="400.0" r="87.5" fill="#2ea04355" opacity="0.1" filter="url(#softGlow)"/>
+<circle cx="550.0" cy="401.0" r="35.0" fill="#000000" opacity="0.3"/>
+<circle cx="549.0" cy="400.0" r="35.0" fill="#2ea043" filter="url(#nodeGlow)"/>
+<circle cx="549.0" cy="389.5" r="21.0" fill="#56d364" opacity="0.15"/>
+<circle cx="543.8" cy="387.8" r="7.0" fill="#ffffff" opacity="0.08"/>
+<text x="549.0" y="400.0" font-family="monospace" font-size="11" font-weight="700" fill="#c9d1d9" text-anchor="middle" dy="0.35em">cli</text>
+<text x="549.0" y="449.0" font-family="monospace" font-size="7" fill="#484f58" text-anchor="middle" dy="0.35em">110 loc</text>
 </g>
 <g data-module="canopy.models">
-<circle cx="500.0" cy="400.0" r="87.5" fill="#2ea04355" opacity="0.1" filter="url(#softGlow)"/>
-<circle cx="501.0" cy="401.0" r="35.0" fill="#000000" opacity="0.3"/>
-<circle cx="500.0" cy="400.0" r="35.0" fill="#2ea043" filter="url(#nodeGlow)"/>
-<circle cx="500.0" cy="389.5" r="21.0" fill="#56d364" opacity="0.15"/>
-<circle cx="494.8" cy="387.8" r="7.0" fill="#ffffff" opacity="0.08"/>
-<text x="500.0" y="400.0" font-family="monospace" font-size="11" font-weight="700" fill="#c9d1d9" text-anchor="middle" dy="0.35em">models</text>
-<text x="500.0" y="449.0" font-family="monospace" font-size="7" fill="#484f58" text-anchor="middle" dy="0.35em">59 loc</text>
+<circle cx="500.0" cy="449.0" r="87.5" fill="#2ea04355" opacity="0.1" filter="url(#softGlow)"/>
+<circle cx="501.0" cy="450.0" r="35.0" fill="#000000" opacity="0.3"/>
+<circle cx="500.0" cy="449.0" r="35.0" fill="#2ea043" filter="url(#nodeGlow)"/>
+<circle cx="500.0" cy="438.5" r="21.0" fill="#56d364" opacity="0.15"/>
+<circle cx="494.8" cy="436.8" r="7.0" fill="#ffffff" opacity="0.08"/>
+<text x="500.0" y="449.0" font-family="monospace" font-size="11" font-weight="700" fill="#c9d1d9" text-anchor="middle" dy="0.35em">models</text>
+<text x="500.0" y="498.0" font-family="monospace" font-size="7" fill="#484f58" text-anchor="middle" dy="0.35em">59 loc</text>
 </g>
 <g data-module="canopy.exceptions">
-<circle cx="500.0" cy="400.0" r="87.5" fill="#2ea04355" opacity="0.1" filter="url(#softGlow)"/>
-<circle cx="501.0" cy="401.0" r="35.0" fill="#000000" opacity="0.3"/>
-<circle cx="500.0" cy="400.0" r="35.0" fill="#2ea043" filter="url(#nodeGlow)"/>
-<circle cx="500.0" cy="389.5" r="21.0" fill="#56d364" opacity="0.15"/>
-<circle cx="494.8" cy="387.8" r="7.0" fill="#ffffff" opacity="0.08"/>
-<circle cx="503.4" cy="411.6" r="2.9" fill="#1b1f23" opacity="0.7"/>
-<circle cx="495.3" cy="393.4" r="1.8" fill="#1b1f23" opacity="0.7"/>
-<text x="500.0" y="400.0" font-family="monospace" font-size="11" font-weight="700" fill="#c9d1d9" text-anchor="middle" dy="0.35em">exception..</text>
-<text x="500.0" y="449.0" font-family="monospace" font-size="7" fill="#484f58" text-anchor="middle" dy="0.35em">18 loc</text>
+<circle cx="451.0" cy="400.0" r="87.5" fill="#2ea04355" opacity="0.1" filter="url(#softGlow)"/>
+<circle cx="452.0" cy="401.0" r="35.0" fill="#000000" opacity="0.3"/>
+<circle cx="451.0" cy="400.0" r="35.0" fill="#2ea043" filter="url(#nodeGlow)"/>
+<circle cx="451.0" cy="389.5" r="21.0" fill="#56d364" opacity="0.15"/>
+<circle cx="445.8" cy="387.8" r="7.0" fill="#ffffff" opacity="0.08"/>
+<circle cx="443.9" cy="386.0" r="2.6" fill="#1b1f23" opacity="0.7"/>
+<circle cx="465.0" cy="400.8" r="1.6" fill="#1b1f23" opacity="0.7"/>
+<text x="451.0" y="400.0" font-family="monospace" font-size="11" font-weight="700" fill="#c9d1d9" text-anchor="middle" dy="0.35em">exception..</text>
+<text x="451.0" y="449.0" font-family="monospace" font-size="7" fill="#484f58" text-anchor="middle" dy="0.35em">18 loc</text>
 </g>
 <g data-module="canopy.collectors">
 <circle cx="580.9" cy="458.8" r="37.8" fill="#2ea04355" opacity="0.1" filter="url(#softGlow)"/>
@@ -335,22 +567,22 @@
 <text x="580.9" y="458.8" font-family="monospace" font-size="8" font-weight="600" fill="#c9d1d9" text-anchor="middle" dy="0.35em">collector..</text>
 </g>
 <g data-module="canopy.layout">
-<circle cx="446.4" cy="564.8" r="32.7" fill="#2ea04355" opacity="0.1" filter="url(#softGlow)"/>
-<circle cx="447.4" cy="565.8" r="13.1" fill="#000000" opacity="0.3"/>
-<circle cx="446.4" cy="564.8" r="13.1" fill="#2ea043" filter="url(#nodeGlow)"/>
-<circle cx="446.4" cy="560.9" r="7.9" fill="#56d364" opacity="0.15"/>
-<circle cx="444.5" cy="560.3" r="2.6" fill="#ffffff" opacity="0.08"/>
+<circle cx="446.4" cy="564.8" r="33.3" fill="#2ea04355" opacity="0.1" filter="url(#softGlow)"/>
+<circle cx="447.4" cy="565.8" r="13.3" fill="#000000" opacity="0.3"/>
+<circle cx="446.4" cy="564.8" r="13.3" fill="#2ea043" filter="url(#nodeGlow)"/>
+<circle cx="446.4" cy="560.9" r="8.0" fill="#56d364" opacity="0.15"/>
+<circle cx="444.4" cy="560.2" r="2.7" fill="#ffffff" opacity="0.08"/>
 <text x="446.4" y="564.8" font-family="monospace" font-size="7" font-weight="600" fill="#c9d1d9" text-anchor="middle" dy="0.35em">layout</text>
 </g>
 <g data-module="canopy.render">
-<circle cx="253.3" cy="400.0" r="62.5" fill="#2ea04355" opacity="0.1" filter="url(#softGlow)"/>
-<circle cx="254.3" cy="401.0" r="25.0" fill="#000000" opacity="0.3"/>
-<circle cx="253.3" cy="400.0" r="25.0" fill="#2ea043" filter="url(#nodeGlow)"/>
-<circle cx="253.3" cy="392.5" r="15.0" fill="#56d364" opacity="0.15"/>
-<circle cx="249.6" cy="391.2" r="5.0" fill="#ffffff" opacity="0.08"/>
-<circle cx="258.5" cy="399.1" r="1.5" fill="#1b1f23" opacity="0.7"/>
+<circle cx="253.3" cy="400.0" r="72.8" fill="#2ea04355" opacity="0.1" filter="url(#softGlow)"/>
+<circle cx="254.3" cy="401.0" r="29.1" fill="#000000" opacity="0.3"/>
+<circle cx="253.3" cy="400.0" r="29.1" fill="#2ea043" filter="url(#nodeGlow)"/>
+<circle cx="253.3" cy="391.3" r="17.5" fill="#56d364" opacity="0.15"/>
+<circle cx="249.0" cy="389.8" r="5.8" fill="#ffffff" opacity="0.08"/>
+<circle cx="259.3" cy="398.9" r="1.5" fill="#1b1f23" opacity="0.7"/>
 <text x="253.3" y="400.0" font-family="monospace" font-size="9" font-weight="600" fill="#c9d1d9" text-anchor="middle" dy="0.35em">render</text>
-<text x="253.3" y="439.0" font-family="monospace" font-size="7" fill="#484f58" text-anchor="middle" dy="0.35em">1112 loc</text>
+<text x="253.3" y="443.1" font-family="monospace" font-size="7" fill="#484f58" text-anchor="middle" dy="0.35em">1509 loc</text>
 </g>
 <g data-module="canopy.aggregator">
 <circle cx="466.6" cy="81.8" r="28.1" fill="#2ea04355" opacity="0.1" filter="url(#softGlow)"/>
@@ -369,14 +601,14 @@
 <text x="708.8" y="168.1" font-family="monospace" font-size="7" font-weight="600" fill="#c9d1d9" text-anchor="middle" dy="0.35em">canopy</text>
 </g>
 <circle cx="500.0" cy="400.0" r="50.0" fill="none" stroke="#da3633" stroke-width="0.5" stroke-dasharray="4 6" opacity="0.3"><animateTransform attributeName="transform" type="rotate" from="0 500.0 400.0" to="360 500.0 400.0" dur="60s" repeatCount="indefinite"/></circle>
-<text x="500.0" y="780.0" font-family="monospace" font-size="9" fill="#30363d" text-anchor="middle" dy="0.35em">9 modules | 2395 lines | 100% healthy 0% moderate 0% complex | 11 dead</text>
+<text x="500.0" y="780.0" font-family="monospace" font-size="9" fill="#30363d" text-anchor="middle" dy="0.35em">9 modules | 2803 lines | 100% healthy 0% moderate 0% complex | 11 dead</text>
 <text x="985.0" y="790.0" font-family="monospace" font-size="10" fill="#161b22" text-anchor="end" dy="0.35em">canopy</text>
 </svg>
   </div>
 
   <div class="stats-bar">
     <div class="stat"><span class="stat-value">9</span><span class="stat-label">Modules</span></div>
-    <div class="stat"><span class="stat-value">2,395</span><span class="stat-label">Lines</span></div>
+    <div class="stat"><span class="stat-value">2,803</span><span class="stat-label">Lines</span></div>
     <div class="stat"><span class="stat-value green">100%</span><span class="stat-label">Healthy</span></div>
     <div class="stat"><span class="stat-value yellow">0%</span><span class="stat-label">Moderate</span></div>
     <div class="stat"><span class="stat-value red">0%</span><span class="stat-label">Complex</span></div>
@@ -395,6 +627,19 @@
   <div class="tt-row"><span>Churn (30d)</span><span class="tt-val" id="tt-churn"></span></div>
   <div class="tt-row"><span>Layer</span><span class="tt-val" id="tt-layer"></span></div>
   <div class="tt-bar"><div class="tt-bar-fill" id="tt-bar"></div></div>
+</div>
+
+<div id="shortcuts-overlay">
+  <div class="shortcuts-modal">
+    <h2>Keyboard Shortcuts</h2>
+    <div class="shortcuts-grid">
+      <kbd>/</kbd><span>Search modules</span>
+      <kbd>Esc</kbd><span>Close / Clear</span>
+      <kbd>R</kbd><span>Reset zoom</span>
+      <kbd>M</kbd><span>Module list</span>
+      <kbd>?</kbd><span>This help</span>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -472,27 +717,38 @@ const DATA = {
       "desc": ""
     },
     "canopy.layout": {
-      "lines": 305,
+      "lines": 316,
       "funcs": 0,
       "mi": 100.0,
       "cc": 0.0,
       "dead": 0,
-      "churn": 6,
+      "churn": 7,
       "layer": "Layout",
       "desc": ""
     },
     "canopy.render": {
-      "lines": 1112,
+      "lines": 1509,
       "funcs": 0,
       "mi": 100.0,
       "cc": 0.0,
       "dead": 1,
-      "churn": 7,
+      "churn": 10,
       "layer": "Render",
       "desc": ""
     }
   }
 };
+
+// --- Constants ---
+const MI_HEALTHY = 40;
+const MI_MODERATE = 20;
+const HEALTHY_COLOR = '#2ea043';
+const MODERATE_COLOR = '#d29922';
+const COMPLEX_COLOR = '#da3633';
+
+function miColor(mi) {
+  return mi >= MI_HEALTHY ? HEALTHY_COLOR : mi >= MI_MODERATE ? MODERATE_COLOR : COMPLEX_COLOR;
+}
 
 // --- Tooltip ---
 const tooltip = document.getElementById('tooltip');
@@ -525,7 +781,9 @@ function showTooltip(name, cx, cy) {
   document.getElementById('tt-desc').textContent = m.desc || '';
   document.getElementById('tt-lines').textContent = m.lines.toLocaleString();
   document.getElementById('tt-funcs').textContent = m.funcs;
-  document.getElementById('tt-mi').textContent = m.mi + '/100';
+  var miEl = document.getElementById('tt-mi');
+  miEl.textContent = m.mi + '/100';
+  miEl.style.color = miColor(m.mi);
   document.getElementById('tt-cc').textContent = m.cc;
   document.getElementById('tt-dead').textContent = m.dead > 0 ? m.dead + ' functions' : 'None';
   document.getElementById('tt-churn').textContent = m.churn + ' commits';
@@ -533,7 +791,7 @@ function showTooltip(name, cx, cy) {
 
   var bar = document.getElementById('tt-bar');
   bar.style.width = m.mi + '%';
-  bar.style.background = m.mi >= 40 ? '#2ea043' : m.mi >= 20 ? '#d29922' : '#da3633';
+  bar.style.background = miColor(m.mi);
 
   tooltip.classList.add('visible');
   var left = cx + 16;
@@ -544,64 +802,203 @@ function showTooltip(name, cx, cy) {
   tooltip.style.top = top + 'px';
 }
 
-// --- Zoom & Pan ---
-var viewBox = svgEl.viewBox.baseVal;
-var isPanning = false;
-var startPoint = { x: 0, y: 0 };
-var startViewBox = { x: 0, y: 0 };
-
+// --- Zoom & Pan (CSS transform — GPU accelerated, no SVG re-render) ---
 var container = document.getElementById('canvas');
+var scale = 1;
+var panX = 0;
+var panY = 0;
+var isPanning = false;
+var startX = 0;
+var startY = 0;
+var startPanX = 0;
+var startPanY = 0;
 
-// Throttle helper — limit re-renders during zoom/pan
-var interactTimer = null;
-function startInteraction() {
-  container.classList.add('interacting');
-  clearTimeout(interactTimer);
+function applyTransform() {
+  svgEl.style.transform = 'translate(' + panX + 'px,' + panY + 'px) scale(' + scale + ')';
+  var zoomed = scale > 1.5;
+  if (zoomed !== wasZoomedIn) {
+    root.classList.toggle('zoomed-in', zoomed);
+    wasZoomedIn = zoomed;
+  }
 }
-function endInteraction() {
-  clearTimeout(interactTimer);
-  interactTimer = setTimeout(function() {
-    container.classList.remove('interacting');
-  }, 200);
+
+// --- Performance: disable filters during interaction ---
+var moveTimer = null;
+var root = document.querySelector('.container');
+var wasZoomedIn = false;
+
+function startMoving() {
+  if (!root.classList.contains('is-moving')) root.classList.add('is-moving');
+  clearTimeout(moveTimer);
+  moveTimer = setTimeout(function() { root.classList.remove('is-moving'); }, 150);
+}
+
+function resetZoom() {
+  scale = 1; panX = 0; panY = 0; isPanning = false;
+  svgEl.style.transition = 'transform 0.3s ease';
+  applyTransform();
+  setTimeout(function() { svgEl.style.transition = ''; }, 300);
 }
 
 container.addEventListener('wheel', function(e) {
   e.preventDefault();
-  startInteraction();
-  var scale = e.deltaY > 0 ? 1.1 : 0.9;
-  var rect = svgEl.getBoundingClientRect();
-  var mx = (e.clientX - rect.left) / rect.width;
-  var my = (e.clientY - rect.top) / rect.height;
-
-  var newW = viewBox.width * scale;
-  var newH = viewBox.height * scale;
-  viewBox.x += (viewBox.width - newW) * mx;
-  viewBox.y += (viewBox.height - newH) * my;
-  viewBox.width = newW;
-  viewBox.height = newH;
-  endInteraction();
+  startMoving();
+  var factor = e.deltaY > 0 ? 0.9 : 1.1;
+  var rect = container.getBoundingClientRect();
+  var mx = e.clientX - rect.left;
+  var my = e.clientY - rect.top;
+  panX = mx - (mx - panX) * factor;
+  panY = my - (my - panY) * factor;
+  scale *= factor;
+  applyTransform();
 }, { passive: false });
 
 container.addEventListener('mousedown', function(e) {
   if (e.button !== 0) return;
   isPanning = true;
-  startInteraction();
-  startPoint = { x: e.clientX, y: e.clientY };
-  startViewBox = { x: viewBox.x, y: viewBox.y };
+  startX = e.clientX;
+  startY = e.clientY;
+  startPanX = panX;
+  startPanY = panY;
 });
 
 window.addEventListener('mousemove', function(e) {
   if (!isPanning) return;
-  var rect = svgEl.getBoundingClientRect();
-  var dx = (e.clientX - startPoint.x) / rect.width * viewBox.width;
-  var dy = (e.clientY - startPoint.y) / rect.height * viewBox.height;
-  viewBox.x = startViewBox.x - dx;
-  viewBox.y = startViewBox.y - dy;
+  startMoving();
+  panX = startPanX + (e.clientX - startX);
+  panY = startPanY + (e.clientY - startY);
+  applyTransform();
 });
 
 window.addEventListener('mouseup', function() {
-  if (isPanning) endInteraction();
   isPanning = false;
+});
+
+container.addEventListener('dblclick', function() {
+  resetZoom();
+});
+
+// --- Search / Filter ---
+var searchInput = document.getElementById('search-input');
+var searchCount = document.getElementById('search-count');
+var searchClear = document.getElementById('search-clear');
+
+function filterModules(query) {
+  var groups = svgEl.querySelectorAll('[data-module]');
+  var matches = 0;
+  query = query.toLowerCase();
+  groups.forEach(function(g) {
+    var name = g.dataset.module.toLowerCase();
+    if (!query || name.includes(query)) {
+      g.classList.remove('search-dim');
+      if (query) { g.classList.add('search-highlight'); matches++; }
+      else { g.classList.remove('search-highlight'); }
+    } else {
+      g.classList.add('search-dim');
+      g.classList.remove('search-highlight');
+    }
+  });
+  searchCount.textContent = query ? matches + ' found' : '';
+  searchClear.style.display = query ? 'block' : 'none';
+  filterSidebarList(query);
+}
+
+searchInput.addEventListener('input', function() {
+  filterModules(this.value);
+});
+
+searchClear.addEventListener('click', function() {
+  searchInput.value = '';
+  filterModules('');
+  searchInput.focus();
+});
+
+// --- Sidebar ---
+var sidebar = document.getElementById('sidebar');
+var sidebarToggle = document.getElementById('sidebar-toggle');
+var sidebarList = document.getElementById('sidebar-list');
+
+function buildSidebarList() {
+  var entries = Object.keys(DATA.modules).map(function(name) {
+    return { name: name, mi: DATA.modules[name].mi };
+  }).sort(function(a, b) { return a.mi - b.mi; });
+  sidebarList.innerHTML = '';
+  entries.forEach(function(e) {
+    var item = document.createElement('div');
+    item.className = 'sidebar-item';
+    item.dataset.module = e.name;
+    item.innerHTML = '<span>' + e.name + '</span><span class="sidebar-mi" style="color:' + miColor(e.mi) + '">' + e.mi + '</span>';
+    item.addEventListener('click', function() { zoomToModule(e.name); });
+    sidebarList.appendChild(item);
+  });
+}
+
+function filterSidebarList(query) {
+  query = query.toLowerCase();
+  var items = sidebarList.querySelectorAll('.sidebar-item');
+  items.forEach(function(item) {
+    item.style.display = item.dataset.module.toLowerCase().includes(query) || !query ? '' : 'none';
+  });
+}
+
+function toggleSidebar() {
+  sidebar.classList.toggle('open');
+}
+
+function zoomToModule(name) {
+  var g = document.querySelector('[data-module="' + name + '"]');
+  if (!g) return;
+  var bbox = g.getBBox();
+  var cx = bbox.x + bbox.width / 2;
+  var cy = bbox.y + bbox.height / 2;
+  var rect = container.getBoundingClientRect();
+  scale = 3;
+  panX = rect.width / 2 - cx * scale;
+  panY = rect.height / 2 - cy * scale;
+  svgEl.style.transition = 'transform 0.3s ease';
+  applyTransform();
+  setTimeout(function() { svgEl.style.transition = ''; }, 300);
+  pinned = name;
+  showTooltip(name, rect.left + rect.width / 2, rect.top + rect.height / 2);
+}
+
+sidebarToggle.addEventListener('click', toggleSidebar);
+buildSidebarList();
+
+// --- Keyboard Shortcuts ---
+var shortcutsOverlay = document.getElementById('shortcuts-overlay');
+
+document.addEventListener('keydown', function(e) {
+  var tag = e.target.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA') {
+    if (e.key === 'Escape') {
+      searchInput.value = '';
+      filterModules('');
+      searchInput.blur();
+    }
+    return;
+  }
+  if (e.key === '/' || (e.ctrlKey && e.key === 'f')) {
+    e.preventDefault();
+    searchInput.focus();
+  } else if (e.key === 'Escape') {
+    searchInput.value = '';
+    filterModules('');
+    pinned = null;
+    tooltip.classList.remove('visible');
+    sidebar.classList.remove('open');
+    shortcutsOverlay.classList.remove('visible');
+  } else if (e.key === 'r' || e.key === 'R') {
+    resetZoom();
+  } else if (e.key === 'm' || e.key === 'M') {
+    toggleSidebar();
+  } else if (e.key === '?') {
+    shortcutsOverlay.classList.toggle('visible');
+  }
+});
+
+shortcutsOverlay.addEventListener('click', function(e) {
+  if (e.target === shortcutsOverlay) shortcutsOverlay.classList.remove('visible');
 });
 </script>
 </body>
