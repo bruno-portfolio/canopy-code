@@ -138,14 +138,18 @@ If your repo has **required status checks** on PRs, pass a PAT so the PR
 triggers your test workflows (the default `GITHUB_TOKEN` won't):
 
 ```yaml
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.CANOPY_PAT }}
       - uses: bruno-portfolio/canopy-code@main
         with:
           token: ${{ secrets.CANOPY_PAT }}
 ```
 
-Create a [fine-grained PAT](https://github.com/settings/personal-access-tokens)
-with **Contents: Read and write** + **Pull requests: Read and write** scoped to
-your repo, then add it as a repository secret named `CANOPY_PAT`.
+Create a [classic PAT](https://github.com/settings/tokens) with the **`public_repo`**
+scope (fine-grained tokens don't trigger PR workflows), then add it as a repository
+secret named `CANOPY_PAT`.
 
 For repos without branch protection, you can push directly:
 
