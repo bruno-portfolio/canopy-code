@@ -166,3 +166,62 @@ class TestRunIntegration:
 
         assert result.exit_code == 0
         assert out_svg.exists()
+
+    @patch(_PATCH_DISCOVER)
+    @patch(_PATCH_SUBPROCESS)
+    def test_run_html_flag(self, mock_subproc, mock_discover, tmp_path):
+        py_file = tmp_path / "app.py"
+        py_file.write_text("x = 1\ny = 2\nz = 3\n", encoding="utf-8")
+
+        mock_subproc.side_effect = self._make_dispatcher(py_file)
+        mock_discover.return_value = {"app.py": 3}
+
+        out_svg = tmp_path / "canopy.svg"
+        out_html = tmp_path / "canopy.html"
+        runner = CliRunner()
+        result = runner.invoke(
+            main,
+            ["run", str(tmp_path), "--output", str(out_svg), "--html", str(out_html)],
+        )
+
+        assert result.exit_code == 0, f"output: {result.output}"
+        assert out_html.exists()
+        content = out_html.read_text(encoding="utf-8")
+        assert "<!DOCTYPE html>" in content
+        assert "<svg" in content
+
+    @patch(_PATCH_DISCOVER)
+    @patch(_PATCH_SUBPROCESS)
+    def test_run_html_creates_parent_dirs(self, mock_subproc, mock_discover, tmp_path):
+        py_file = tmp_path / "app.py"
+        py_file.write_text("x = 1\n", encoding="utf-8")
+
+        mock_subproc.side_effect = self._make_dispatcher(py_file)
+        mock_discover.return_value = {"app.py": 1}
+
+        out_svg = tmp_path / "canopy.svg"
+        out_html = tmp_path / "deep" / "nested" / "canopy.html"
+        runner = CliRunner()
+        result = runner.invoke(
+            main,
+            ["run", str(tmp_path), "--output", str(out_svg), "--html", str(out_html)],
+        )
+
+        assert result.exit_code == 0
+        assert out_html.exists()
+
+    @patch(_PATCH_DISCOVER)
+    @patch(_PATCH_SUBPROCESS)
+    def test_run_without_html_flag(self, mock_subproc, mock_discover, tmp_path):
+        py_file = tmp_path / "app.py"
+        py_file.write_text("x = 1\n", encoding="utf-8")
+
+        mock_subproc.side_effect = self._make_dispatcher(py_file)
+        mock_discover.return_value = {"app.py": 1}
+
+        out_svg = tmp_path / "canopy.svg"
+        runner = CliRunner()
+        result = runner.invoke(main, ["run", str(tmp_path), "--output", str(out_svg)])
+
+        assert result.exit_code == 0
+        assert "interactive HTML" not in result.output

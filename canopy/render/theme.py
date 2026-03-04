@@ -1,8 +1,12 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from canopy.config import Config
+
+if TYPE_CHECKING:
+    from canopy.models import Module
 
 
 @dataclass(frozen=True)
@@ -88,6 +92,54 @@ def health_colors(theme: Theme, mi: float) -> HealthColors:
     if mi >= theme.mi_moderate:
         return theme.moderate
     return theme.complex
+
+
+@dataclass(frozen=True)
+class ProjectStats:
+    """Aggregated health stats computed once, shared by SVG and HTML renderers."""
+
+    modules: int
+    lines: int
+    healthy: int
+    moderate: int
+    complex: int
+    dead_total: int
+
+    @property
+    def healthy_pct(self) -> int:
+        return round(self.healthy * 100 / self.modules) if self.modules else 0
+
+    @property
+    def moderate_pct(self) -> int:
+        return round(self.moderate * 100 / self.modules) if self.modules else 0
+
+    @property
+    def complex_pct(self) -> int:
+        return round(self.complex * 100 / self.modules) if self.modules else 0
+
+
+def compute_stats(modules: list[Module], theme: Theme) -> ProjectStats:
+    """Compute health stats from module list and theme thresholds."""
+    total = len(modules)
+    if total == 0:
+        return ProjectStats(0, 0, 0, 0, 0, 0)
+    total_lines = 0
+    healthy = moderate = dead_total = 0
+    for m in modules:
+        total_lines += m.lines
+        dead_total += m.dead
+        if m.mi >= theme.mi_healthy:
+            healthy += 1
+        elif m.mi >= theme.mi_moderate:
+            moderate += 1
+    return ProjectStats(
+        modules=total,
+        lines=total_lines,
+        healthy=healthy,
+        moderate=moderate,
+        complex=total - healthy - moderate,
+        dead_total=dead_total,
+    )
 
 
 def default_theme() -> Theme:

@@ -68,6 +68,7 @@
 <circle cx="324.6" cy="131.5" r="0.7" fill="#c9d1d9" opacity="0.1"/>
 <circle cx="500.0" cy="400.0" r="200.0" fill="none" stroke="#bc8cff" stroke-width="0.5" opacity="0.3" stroke-dasharray="8 4"/>
 <text x="431.4" y="212.1" font-family="monospace" font-size="8" font-weight="600" fill="#484f58" text-anchor="start" transform="rotate(-70 431.4 212.1)">Infra</text>
+<g data-module="pkg.foo">
 <circle cx="600.0" cy="450.0" r="50.0" fill="#2ea04355" opacity="0.1" filter="url(#softGlow)"/>
 <circle cx="601.0" cy="451.0" r="20.0" fill="#000000" opacity="0.3"/>
 <circle cx="600.0" cy="450.0" r="20.0" fill="#2ea043" filter="url(#nodeGlow)"/>
@@ -75,6 +76,7 @@
 <circle cx="597.0" cy="443.0" r="4.0" fill="#ffffff" opacity="0.08"/>
 <text x="600.0" y="450.0" font-family="monospace" font-size="8" font-weight="600" fill="#c9d1d9" text-anchor="middle" dy="0.35em">foo</text>
 <text x="600.0" y="484.0" font-family="monospace" font-size="7" fill="#484f58" text-anchor="middle" dy="0.35em">100 loc</text>
+</g>
 <text x="500.0" y="780.0" font-family="monospace" font-size="9" fill="#30363d" text-anchor="middle" dy="0.35em">1 modules | 100 lines | 100% healthy 0% moderate 0% complex</text>
 <text x="985.0" y="790.0" font-family="monospace" font-size="10" fill="#161b22" text-anchor="end" dy="0.35em">canopy</text>
 </svg>

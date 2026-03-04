@@ -13,7 +13,7 @@ from canopy.collectors.radon import collect_radon
 from canopy.collectors.vulture import collect_vulture
 from canopy.config import load_config, resolve_project_name, validate_config
 from canopy.layout import assign_layers, collapse_small, compute_layout
-from canopy.render import render_svg
+from canopy.render import render_html, render_svg
 from canopy.render.theme import theme_from_config
 
 
@@ -53,7 +53,7 @@ def _run_pipeline(cfg, source_path, project_dir, radon, vulture, churn, imports)
     return project_data, layout
 
 
-def _write_output(cfg, project_data, layout):
+def _write_output(cfg, project_data, layout, html_path=None):
     theme = theme_from_config(cfg)
     svg = render_svg(project_data, layout, theme)
     out = Path(cfg.output.path)
@@ -62,6 +62,13 @@ def _write_output(cfg, project_data, layout):
     n_modules = len(project_data.modules)
     total_lines = sum(m.lines for m in project_data.modules)
     click.echo(f"{out} written ({n_modules} modules, {total_lines} lines)")
+
+    if html_path:
+        html_content = render_html(project_data, theme, svg)
+        html_out = Path(html_path)
+        html_out.parent.mkdir(parents=True, exist_ok=True)
+        html_out.write_text(html_content, encoding="utf-8")
+        click.echo(f"{html_out} written (interactive HTML)")
 
 
 @click.group()
@@ -74,7 +81,8 @@ def main():
 @click.argument("path", default=".")
 @click.option("--config", "config_path", default=None, help="Path to canopy.yml")
 @click.option("--output", "output_override", default=None, help="Override output path")
-def run(path, config_path, output_override):
+@click.option("--html", "html_path", default=None, help="Generate interactive HTML viewer")
+def run(path, config_path, output_override, html_path):
     """Analyse a project and generate an SVG diagram."""
     try:
         project_dir = str(Path(path).resolve())
@@ -90,7 +98,7 @@ def run(path, config_path, output_override):
             churn,
             imports,
         )
-        _write_output(cfg, project_data, layout)
+        _write_output(cfg, project_data, layout, html_path=html_path)
     except exceptions.ConfigError as exc:
         click.echo(f"Error: {exc}", err=True)
         raise SystemExit(1) from exc

@@ -18,7 +18,7 @@ from xml.sax.saxutils import escape
 from canopy.layout.collapse import COLLAPSED_PREFIX
 from canopy.models import Dependency, LayoutResult, Module, NodePosition, ProjectData
 
-from .theme import HealthColors, Theme, health_colors
+from .theme import HealthColors, Theme, compute_stats, health_colors
 
 
 def _stable_hash(s: str) -> int:
@@ -265,12 +265,15 @@ def _render_single_node(ctx: _RenderContext, node: NodePosition) -> None:
         return
     hc = health_colors(ctx.theme, mod.mi)
     is_core = ctx.core_layer and mod.layer == ctx.core_layer
+    ctx.parts.append(f'<g data-module="{escape(node.name)}">')
     _render_ambient_glow(ctx, node, hc, is_core)
     if mod.churn >= ctx.theme.churn_high:
         _render_churn_pulse(ctx, node, hc)
     _render_node_body(ctx, node, hc)
     if mod.dead > 0:
         _render_dead_spots(ctx, node, mod)
+    _render_node_label(ctx, node, mod, is_core)
+    ctx.parts.append("</g>")
 
 
 def _render_ambient_glow(
@@ -352,56 +355,53 @@ def _render_dead_spots(ctx: _RenderContext, node: NodePosition, mod: Module) -> 
 
 
 # ---------------------------------------------------------------------------
-# 8. Labels
+# 8. Labels (rendered inside each node's <g> via _render_node_label)
 # ---------------------------------------------------------------------------
 
 
-def _render_labels(ctx: _RenderContext) -> None:
+def _render_node_label(
+    ctx: _RenderContext, node: NodePosition, mod: Module, is_core: bool
+) -> None:
     t = ctx.theme
-    for node in ctx.layout.nodes:
-        mod = ctx.module_map.get(node.name)
-        if not mod:
-            continue
-        sx, sy = ctx.svg_xy(node)
-        is_core = ctx.core_layer and mod.layer == ctx.core_layer
+    sx, sy = ctx.svg_xy(node)
 
-        # Label text
-        if node.name.startswith(COLLAPSED_PREFIX):
-            label = escape(mod.desc) if mod.desc else "..."
-        else:
-            segment = node.name.rsplit(".", 1)[-1]
-            segment = segment.lstrip("_")
-            if len(segment) > 9:
-                segment = segment[:9] + ".."
-            label = escape(segment)
+    # Label text
+    if node.name.startswith(COLLAPSED_PREFIX):
+        label = escape(mod.desc) if mod.desc else "..."
+    else:
+        segment = node.name.rsplit(".", 1)[-1]
+        segment = segment.lstrip("_")
+        if len(segment) > 9:
+            segment = segment[:9] + ".."
+        label = escape(segment)
 
-        # Font sizing
-        if is_core:
-            font_size, font_weight = 11, 700
-        elif node.radius > 22:
-            font_size, font_weight = 9, 600
-        elif node.radius > 15:
-            font_size, font_weight = 8, 600
-        else:
-            font_size, font_weight = 7, 600
+    # Font sizing
+    if is_core:
+        font_size, font_weight = 11, 700
+    elif node.radius > 22:
+        font_size, font_weight = 9, 600
+    elif node.radius > 15:
+        font_size, font_weight = 8, 600
+    else:
+        font_size, font_weight = 7, 600
 
+    ctx.parts.append(
+        f'<text x="{_fmt(sx)}" y="{_fmt(sy)}"'
+        f' font-family="monospace" font-size="{font_size}"'
+        f' font-weight="{font_weight}"'
+        f' fill="{t.text_primary}" text-anchor="middle"'
+        f' dy="0.35em">{label}</text>'
+    )
+
+    # LOC label (only for larger nodes and core)
+    if is_core or node.radius > 18:
+        loc_y = sy + node.radius + 14
         ctx.parts.append(
-            f'<text x="{_fmt(sx)}" y="{_fmt(sy)}"'
-            f' font-family="monospace" font-size="{font_size}"'
-            f' font-weight="{font_weight}"'
-            f' fill="{t.text_primary}" text-anchor="middle"'
-            f' dy="0.35em">{label}</text>'
+            f'<text x="{_fmt(sx)}" y="{_fmt(loc_y)}"'
+            f' font-family="monospace" font-size="7"'
+            f' fill="{t.text_muted}" text-anchor="middle"'
+            f' dy="0.35em">{mod.lines} loc</text>'
         )
-
-        # LOC label (only for larger nodes and core)
-        if is_core or node.radius > 18:
-            loc_y = sy + node.radius + 14
-            ctx.parts.append(
-                f'<text x="{_fmt(sx)}" y="{_fmt(loc_y)}"'
-                f' font-family="monospace" font-size="7"'
-                f' fill="{t.text_muted}" text-anchor="middle"'
-                f' dy="0.35em">{mod.lines} loc</text>'
-            )
 
 
 # ---------------------------------------------------------------------------
@@ -439,26 +439,16 @@ def _render_core_decoration(ctx: _RenderContext) -> None:
 
 def _render_stats_bar(ctx: _RenderContext) -> None:
     t = ctx.theme
-    modules = ctx.project_data.modules
-    total = len(modules)
-    if total == 0:
+    s = compute_stats(ctx.project_data.modules, t)
+    if s.modules == 0:
         return
-    total_lines = sum(m.lines for m in modules)
-    healthy = sum(1 for m in modules if m.mi >= t.mi_healthy)
-    moderate = sum(1 for m in modules if t.mi_moderate <= m.mi < t.mi_healthy)
-    cmplx = total - healthy - moderate
-    dead_total = sum(m.dead for m in modules)
-
-    pct_h = f"{healthy * 100 / total:.0f}"
-    pct_m = f"{moderate * 100 / total:.0f}"
-    pct_c = f"{cmplx * 100 / total:.0f}"
 
     stats = (
-        f"{total} modules | {total_lines} lines | "
-        f"{pct_h}% healthy {pct_m}% moderate {pct_c}% complex"
+        f"{s.modules} modules | {s.lines} lines | "
+        f"{s.healthy_pct}% healthy {s.moderate_pct}% moderate {s.complex_pct}% complex"
     )
-    if dead_total > 0:
-        stats += f" | {dead_total} dead"
+    if s.dead_total > 0:
+        stats += f" | {s.dead_total} dead"
     stats = escape(stats)
 
     y = t.height - 20
@@ -523,7 +513,6 @@ def render_svg(
     _render_ring_labels(ctx)
     _render_dependencies(ctx)
     _render_nodes(ctx)
-    _render_labels(ctx)
     _render_core_decoration(ctx)
     _render_stats_bar(ctx)
     _render_watermark(ctx)
