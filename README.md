@@ -7,9 +7,14 @@
 
 Canopy analyses your Python project — complexity, dead code, churn, and
 module structure — then renders a single SVG diagram you can embed in your
-README or CI artifacts.
+README or CI artifacts. Click the diagram below for an interactive view
+with tooltips, zoom and pan.
 
-![canopy](docs/canopy.svg)
+<p align="center">
+  <a href="https://bruno-portfolio.github.io/canopy-code/canopy.html">
+    <img src="docs/canopy.svg" width="100%" />
+  </a>
+</p>
 
 ## What it shows
 
@@ -51,6 +56,9 @@ canopy run .
 
 # Specify a project path and output file
 canopy run ./my-project --output docs/canopy.svg
+
+# Generate SVG + interactive HTML viewer
+canopy run . --output docs/canopy.svg --html docs/canopy.html
 
 # Use a custom config
 canopy run . --config path/to/canopy.yml
@@ -127,13 +135,13 @@ jobs:
         run: pip install "canopy-code[tools]"
 
       - name: Generate diagram
-        run: canopy run . --output docs/canopy.svg
+        run: canopy run . --output docs/canopy.svg --html docs/canopy.html
 
-      - name: Commit SVG
+      - name: Commit artifacts
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/canopy.svg
+          git add docs/canopy.svg docs/canopy.html
           git diff --cached --quiet || git commit -m "docs: update canopy diagram [skip ci]"
           git push
 ```
@@ -151,6 +159,19 @@ After the SVG is generated, reference it in your README:
 ```
 
 GitHub renders inline SVGs natively — no external hosting needed.
+
+To link the static SVG to an interactive HTML viewer on GitHub Pages:
+
+```html
+<p align="center">
+  <a href="https://your-user.github.io/your-repo/canopy.html">
+    <img src="docs/canopy.svg" width="100%" />
+  </a>
+</p>
+```
+
+The HTML viewer is self-contained (zero external dependencies) and provides
+hover tooltips, click-to-pin, zoom (scroll) and pan (drag).
 
 ## Limitations
 

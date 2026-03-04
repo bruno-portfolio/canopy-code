@@ -1,0 +1,40 @@
+project: canopy-code
+source: "canopy"
+module_depth: 2
+
+layers:
+  core:
+    modules: ["cli", "models", "config", "exceptions"]
+    label: Core
+  collectors:
+    modules: ["collectors"]
+    label: Collectors
+  layout:
+    modules: ["layout"]
+    label: Layout
+  render:
+    modules: ["render"]
+    label: Render
+
+vulture:
+  min_confidence: 60
+  exclude_types: ["attribute"]
+
+git:
+  churn_days: 30
+
+thresholds:
+  mi_healthy: 40
+  mi_moderate: 20
+  churn_high: 20
+  min_loc: 10
+
+output:
+  path: docs/canopy.svg
+  width: 1000
+  height: 800
+
+ignore:
+  - "tests/**"
+  - "docs/**"
+  - "**/__pycache__/**"
