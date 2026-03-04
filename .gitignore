@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Build / dist
+dist/
+build/
+*.egg-info/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Tools
+.mypy_cache/
+.ruff_cache/
+
+# Project-specific
+canopy-orbital.html
+CANOPY.md

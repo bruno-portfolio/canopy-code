@@ -42,8 +42,8 @@ pip install "canopy-code[tools]"
 For development:
 
 ```bash
-git clone https://github.com/your-org/canopy.git
-cd canopy
+git clone https://github.com/bruno-portfolio/canopy-code.git
+cd canopy-code
 pip install -e ".[dev,tools]"
 pre-commit install
 ```

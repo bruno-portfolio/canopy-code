@@ -8,6 +8,18 @@ version = "0.1.0"
 description = "CLI tool that generates orbital SVG visualizations of codebase health"
 requires-python = ">=3.10"
 license = "MIT"
+authors = [{name = "Bruno"}]
+readme = "README.md"
+keywords = ["code-health", "visualization", "svg", "complexity", "maintainability"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Quality Assurance",
+]
 dependencies = [
     "click>=8.0",
     "pyyaml>=6.0",
@@ -28,6 +40,11 @@ dev = [
 
 [project.scripts]
 canopy = "canopy.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/bruno-portfolio/canopy-code"
+Repository = "https://github.com/bruno-portfolio/canopy-code"
+Issues = "https://github.com/bruno-portfolio/canopy-code/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["canopy"]
