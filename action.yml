@@ -1,0 +1,64 @@
+name: "Canopy Code"
+description: "Generate orbital SVG/HTML visualization of codebase health"
+branding:
+  icon: "eye"
+  color: "green"
+
+inputs:
+  path:
+    description: "Path to the project to analyze (default: repo root)"
+    default: "."
+  output-svg:
+    description: "Output SVG path"
+    default: "docs/canopy.svg"
+  output-html:
+    description: "Output HTML path (leave empty to skip)"
+    default: "docs/canopy.html"
+  config:
+    description: "Path to canopy.yml config file (auto-detected if not set)"
+    default: ""
+  commit:
+    description: "Auto-commit generated files"
+    default: "true"
+  commit-message:
+    description: "Commit message for auto-commit"
+    default: "docs: update canopy visualization"
+  python-version:
+    description: "Python version to use"
+    default: "3.12"
+
+runs:
+  using: "composite"
+  steps:
+    - uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    - name: Install canopy-code
+      shell: bash
+      run: pip install "${{ github.action_path }}[tools]"
+
+    - name: Run canopy
+      shell: bash
+      run: |
+        ARGS="--output ${{ inputs.output-svg }}"
+        if [ -n "${{ inputs.output-html }}" ]; then
+          ARGS="$ARGS --html ${{ inputs.output-html }}"
+        fi
+        if [ -n "${{ inputs.config }}" ]; then
+          ARGS="$ARGS --config ${{ inputs.config }}"
+        fi
+        canopy run $ARGS ${{ inputs.path }}
+
+    - name: Commit changes
+      if: inputs.commit == 'true'
+      shell: bash
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git add ${{ inputs.output-svg }}
+        if [ -n "${{ inputs.output-html }}" ]; then
+          git add ${{ inputs.output-html }}
+        fi
+        git diff --staged --quiet || git commit -m "${{ inputs.commit-message }}"
+        git push

@@ -178,37 +178,26 @@ def compute_layout(project_data: ProjectData, cfg: Config) -> LayoutResult:
             ring_modules[layer_name] = collapse_overflow(mods, capacity)
         ring_fitted_radii[layer_name] = fitted_r
 
-    # Step 4 — Sector allocation
-    total_modules = sum(len(ring_modules.get(ln, [])) for ln in non_core_layers)
-    sector_starts: dict[str, float] = {}
-    sector_spans: dict[str, float] = {}
-    accumulated = 0.0
-    for layer_name in non_core_layers:
-        count = len(ring_modules.get(layer_name, []))
-        span = (count / total_modules) * 2 * math.pi if total_modules > 0 else 0.0
-        sector_starts[layer_name] = accumulated
-        sector_spans[layer_name] = span
-        accumulated += span
-
-    # Step 5 — Position non-core nodes
+    # Step 4 — Position non-core nodes (each layer uses full 360° on its ring)
+    _RING_ANGLE_OFFSET = 0.618033  # golden ratio offset between rings to avoid alignment
     for idx, layer_name in enumerate(non_core_layers):
         mods = ring_modules.get(layer_name, [])
         if not mods:
             continue
         r = ring_radii[idx]
-        start = sector_starts[layer_name]
-        span = sector_spans[layer_name]
         count = len(mods)
         fitted_r = ring_fitted_radii[layer_name]
 
         # Scale jitter to 0 when ring is >70% full
         capacity = _ring_capacity(r, fitted_r)
         fill_ratio = count / capacity
-
         jitter_scale = max(0.0, 1.0 - (fill_ratio - 0.7) / 0.3) if fill_ratio > 0.7 else 1.0
 
+        # Offset each ring by golden ratio to stagger nodes between rings
+        ring_offset = -math.pi / 2 + idx * _RING_ANGLE_OFFSET
+
         for i, m in enumerate(mods):
-            angle = start + span * (i + 1) / (count + 1)
+            angle = ring_offset + 2 * math.pi * (i + 0.5) / count
             jitter = math.sin(i * _JITTER_FREQUENCY) * _JITTER_AMPLITUDE * jitter_scale
             effective_r = r + jitter
             x = math.cos(angle) * effective_r

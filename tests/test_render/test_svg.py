@@ -331,7 +331,7 @@ class TestDependencies:
                     make_mod(name="pkg.a", layer="infra"),
                     make_mod(name="pkg.b", layer="infra"),
                 ],
-                deps=[make_dep("pkg.a", "pkg.b", weight=0.5)],
+                deps=[make_dep("pkg.a", "pkg.b", weight=5.0)],
             ),
             make_layout(
                 nodes=[make_node(name="pkg.a", x=-100, y=0), make_node(name="pkg.b", x=100, y=0)]

@@ -181,71 +181,34 @@ def _render_ring_labels(ctx: _RenderContext) -> None:
 
 
 def _render_dependencies(ctx: _RenderContext) -> None:
-    _render_core_deps(ctx)
-    _render_infra_deps(ctx)
-    _render_significant_deps(ctx)
+    """Render dependency lines hidden by default (shown via HTML hover).
 
-
-def _render_core_deps(ctx: _RenderContext) -> None:
-    """Lines from core modules to infra modules."""
-    t = ctx.theme
-    if not ctx.core_layer:
-        return
-    for dep in ctx.project_data.dependencies:
-        resolved = ctx.resolve_dep(dep)
-        if not resolved:
-            continue
-        src_mod, tgt_mod, sx, sy, tx, ty = resolved
-        if src_mod.layer != ctx.core_layer or tgt_mod.layer == ctx.core_layer:
-            continue
-        ctx.parts.append(
-            f'<line x1="{_fmt(sx)}" y1="{_fmt(sy)}"'
-            f' x2="{_fmt(tx)}" y2="{_fmt(ty)}"'
-            f' stroke="{t.dep_core_infra}" stroke-width="0.5" opacity="0.12"/>'
-        )
-
-
-def _render_infra_deps(ctx: _RenderContext) -> None:
-    """Light lines for low-weight dependencies from infra outward."""
+    Each line gets data-from/data-to attributes for JS to find connections.
+    All lines start with opacity 0 — the HTML viewer reveals them on hover.
+    In static SVG (GitHub), deps are invisible (clean diagram).
+    """
     t = ctx.theme
     for dep in ctx.project_data.dependencies:
-        if dep.weight > 0.5:
+        if dep.weight < 1.0:
             continue
         resolved = ctx.resolve_dep(dep)
         if not resolved:
             continue
         src_mod, _tgt_mod, sx, sy, tx, ty = resolved
-        if ctx.core_layer and src_mod.layer == ctx.core_layer:
+        if ctx.core_layer and (
+            src_mod.layer == ctx.core_layer or _tgt_mod.layer == ctx.core_layer
+        ):
             continue
-        ctx.parts.append(
-            f'<line x1="{_fmt(sx)}" y1="{_fmt(sy)}"'
-            f' x2="{_fmt(tx)}" y2="{_fmt(ty)}"'
-            f' stroke="{t.dep_light}" stroke-width="0.5" opacity="0.15"/>'
-        )
-
-
-def _render_significant_deps(ctx: _RenderContext) -> None:
-    """Bezier curves for significant dependencies (weight >= 0.3, non-core)."""
-    t = ctx.theme
-    for dep in ctx.project_data.dependencies:
-        if dep.weight < 0.3:
-            continue
-        resolved = ctx.resolve_dep(dep)
-        if not resolved:
-            continue
-        src_mod, _tgt_mod, sx, sy, tx, ty = resolved
-        if ctx.core_layer and src_mod.layer == ctx.core_layer:
-            continue
-        # Control point pulled 30% toward center
         mx, my = (sx + tx) / 2, (sy + ty) / 2
         cpx = mx + (ctx.cx - mx) * 0.3
         cpy = my + (ctx.cy - my) * 0.3
         ctx.parts.append(
-            f'<path d="M{_fmt(sx)},{_fmt(sy)}'
+            f'<path data-from="{src_mod.name}" data-to="{_tgt_mod.name}"'
+            f' d="M{_fmt(sx)},{_fmt(sy)}'
             f" Q{_fmt(cpx)},{_fmt(cpy)}"
             f' {_fmt(tx)},{_fmt(ty)}"'
             f' fill="none" stroke="{t.dep_significant}"'
-            f' stroke-width="0.8" opacity="0.2"/>'
+            f' stroke-width="0.8" opacity="0"/>'
         )
 
 

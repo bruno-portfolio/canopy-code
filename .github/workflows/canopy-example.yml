@@ -1,0 +1,30 @@
+# Example workflow for using canopy-code in your project.
+# Copy this file to your project's .github/workflows/ directory.
+#
+# Prerequisites:
+#   1. A canopy.yml config file in your repo root (run `canopy init` or create manually)
+#   2. Repository Settings > Actions > Workflow permissions > "Read and write permissions"
+
+name: Canopy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  canopy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history needed for git churn analysis
+      - uses: bruno-portfolio/canopy-code@main
+        # Optional overrides:
+        # with:
+        #   output-svg: docs/canopy.svg
+        #   output-html: docs/canopy.html
+        #   config: canopy.yml
+        #   commit: "true"
+        #   commit-message: "docs: update canopy visualization"
