@@ -1,0 +1,61 @@
+# canopy configuration — agrobr example
+# All values shown are defaults unless noted otherwise.
+# Minimal config: an empty file works (zero-config mode).
+
+# Project name displayed in the SVG header.
+# Default: directory name.
+project: agrobr
+
+# Root source directory to analyze (relative to project root).
+source: "src/agrobr"
+
+# Module aggregation depth.
+# agrobr.cepea.parsers.v1 at depth 2 → agrobr.cepea
+module_depth: 2
+
+# Architecture layers — ring order follows insertion order.
+# Each layer maps module name suffixes to a ring.
+# label is optional — defaults to name.replace("_", " ").title()
+layers:
+  core:
+    modules: ["_core"]
+  infra:
+    modules: ["_cache", "_validation", "_health", "_types"]
+    label: Infrastructure
+  data:
+    modules: ["comexstat", "conab", "ibge", "bcb", "inmet", "anda", "siscomex", "antaq", "indea", "sidra", "agrofit", "mapa"]
+    label: Data Sources
+  market:
+    modules: ["cot_b3", "cepea", "un_comtrade"]
+    label: Market
+  geo:
+    modules: ["mapbiomas", "deforestation", "car", "sigef", "snpa"]
+    label: Geospatial
+
+# Vulture dead code detection settings.
+vulture:
+  min_confidence: 60
+  exclude_types: ["attribute"]
+
+# Git churn analysis.
+git:
+  churn_days: 30
+
+# Health classification thresholds.
+thresholds:
+  mi_healthy: 40
+  mi_moderate: 20
+  churn_high: 20
+  min_loc: 50
+
+# SVG output settings.
+output:
+  path: docs/canopy.svg
+  width: 1000
+  height: 800
+
+# Glob patterns to ignore during analysis.
+ignore:
+  - "tests/**"
+  - "docs/**"
+  - "**/__pycache__/**"

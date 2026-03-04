@@ -1,0 +1,48 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "canopy-code"
+version = "0.1.0"
+description = "CLI tool that generates orbital SVG visualizations of codebase health"
+requires-python = ">=3.10"
+license = "MIT"
+dependencies = [
+    "click>=8.0",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+tools = [
+    "radon>=5.1",
+    "vulture>=2.0",
+]
+dev = [
+    "pytest>=7.4",
+    "pytest-cov>=4.1",
+    "ruff>=0.4",
+    "mypy>=1.7",
+]
+
+[project.scripts]
+canopy = "canopy.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["canopy"]
+
+[tool.ruff]
+line-length = 99
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "B", "C4", "UP", "SIM"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --tb=short"
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
