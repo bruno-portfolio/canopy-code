@@ -425,7 +425,7 @@
     <h1>canopy-code</h1>
     <span class="badge">canopy-code</span>
     <span class="badge">12 modules</span>
-    <span class="badge">3,694 lines</span>
+    <span class="badge">3,724 lines</span>
     <div class="search-box">
       <input id="search-input" placeholder="Search modules..." />
       <span id="search-count"></span>
@@ -604,16 +604,16 @@
 <text x="449.6" y="386.6" font-family="monospace" font-size="7" fill="#484f58" text-anchor="middle" dy="0.35em">18 loc</text>
 </g>
 <g data-module="canopy.collectors">
-<circle cx="500.0" cy="514.3" r="41.8" fill="#d2992255" opacity="0.1" filter="url(#softGlow)"/>
-<circle cx="501.0" cy="515.3" r="16.7" fill="#000000" opacity="0.3"/>
-<circle cx="500.0" cy="514.3" r="16.7" fill="#d29922" filter="url(#nodeGlow)"/>
-<circle cx="500.0" cy="509.3" r="10.0" fill="#e3b341" opacity="0.15"/>
-<circle cx="497.5" cy="508.4" r="3.3" fill="#ffffff" opacity="0.08"/>
+<circle cx="500.0" cy="514.3" r="43.1" fill="#d2992255" opacity="0.1" filter="url(#softGlow)"/>
+<circle cx="501.0" cy="515.3" r="17.2" fill="#000000" opacity="0.3"/>
+<circle cx="500.0" cy="514.3" r="17.2" fill="#d29922" filter="url(#nodeGlow)"/>
+<circle cx="500.0" cy="509.1" r="10.3" fill="#e3b341" opacity="0.15"/>
+<circle cx="497.4" cy="508.3" r="3.4" fill="#ffffff" opacity="0.08"/>
 <circle cx="498.7" cy="513.3" r="2.4" fill="#1b1f23" opacity="0.7"/>
-<circle cx="503.7" cy="508.7" r="2.0" fill="#1b1f23" opacity="0.7"/>
-<circle cx="491.5" cy="515.6" r="2.3" fill="#1b1f23" opacity="0.7"/>
-<circle cx="497.3" cy="512.8" r="2.6" fill="#1b1f23" opacity="0.7"/>
-<circle cx="494.2" cy="508.8" r="1.5" fill="#1b1f23" opacity="0.7"/>
+<circle cx="503.8" cy="508.5" r="2.0" fill="#1b1f23" opacity="0.7"/>
+<circle cx="491.3" cy="515.6" r="2.3" fill="#1b1f23" opacity="0.7"/>
+<circle cx="497.2" cy="512.8" r="2.6" fill="#1b1f23" opacity="0.7"/>
+<circle cx="494.0" cy="508.6" r="1.5" fill="#1b1f23" opacity="0.7"/>
 <text x="500.0" y="514.3" font-family="monospace" font-size="8" font-weight="600" fill="#c9d1d9" text-anchor="middle" dy="0.35em">collectors</text>
 </g>
 <g data-module="canopy.layout">
@@ -659,7 +659,7 @@
 <text x="674.8" y="28.0" font-family="monospace" font-size="8" fill="#8b949e">Moderate</text>
 <circle cx="603.0" cy="25.0" r="4" fill="#2ea043"/>
 <text x="613.0" y="28.0" font-family="monospace" font-size="8" fill="#8b949e">Healthy</text>
-<text x="500.0" y="780.0" font-family="monospace" font-size="9" fill="#484f58" text-anchor="middle" dy="0.35em">12 modules | 3694 lines | 73% healthy 27% moderate 0% unhealthy (by loc) | 8 dead</text>
+<text x="500.0" y="780.0" font-family="monospace" font-size="9" fill="#484f58" text-anchor="middle" dy="0.35em">12 modules | 3724 lines | 72% healthy 28% moderate 0% unhealthy (by loc) | 8 dead</text>
 <text x="985.0" y="790.0" font-family="monospace" font-size="10" fill="#161b22" text-anchor="end" dy="0.35em">canopy-code</text>
 </svg>
   </div>
@@ -668,9 +668,9 @@
     <div class="stat"><span class="stat-value" style="color:#2ea043">B</span><span class="stat-label">Grade</span></div>
     <div class="stat"><span class="stat-value" style="color:#2ea043">85</span><span class="stat-label">Score</span></div>
     <div class="stat"><span class="stat-value">12</span><span class="stat-label">Modules</span></div>
-    <div class="stat"><span class="stat-value">3,694</span><span class="stat-label">Lines</span></div>
-    <div class="stat"><span class="stat-value green">73%</span><span class="stat-label">Healthy (loc)</span></div>
-    <div class="stat"><span class="stat-value yellow">27%</span><span class="stat-label">Moderate (loc)</span></div>
+    <div class="stat"><span class="stat-value">3,724</span><span class="stat-label">Lines</span></div>
+    <div class="stat"><span class="stat-value green">72%</span><span class="stat-label">Healthy (loc)</span></div>
+    <div class="stat"><span class="stat-value yellow">28%</span><span class="stat-label">Moderate (loc)</span></div>
     <div class="stat"><span class="stat-value red">0%</span><span class="stat-label">Unhealthy (loc)</span></div>
     <div class="stat"><span class="stat-value" style="color:#484f58">8</span><span class="stat-label">Dead Code</span></div>
   </div>
@@ -868,28 +868,28 @@ const DATA = {
       "desc": ""
     },
     "canopy.collectors": {
-      "lines": 498,
-      "funcs": 24,
-      "score": 72.8,
-      "mi": 55.2,
-      "cc": 3.83,
-      "cc_max": 14,
+      "lines": 528,
+      "funcs": 26,
+      "score": 72.3,
+      "mi": 56.46,
+      "cc": 3.96,
+      "cc_max": 15,
       "dead": 5,
-      "churn": 2,
-      "risk": 0.222,
+      "churn": 3,
+      "risk": 0.277,
       "coverage": null,
       "factors": [
         {
-          "label": "1/24 functions CC>10",
-          "penalty": 6.2
+          "label": "1/26 functions CC>10",
+          "penalty": 5.8
         },
         {
-          "label": "worst function CC 14",
-          "penalty": 6.0
+          "label": "worst function CC 15",
+          "penalty": 7.5
         },
         {
           "label": "5 dead symbols",
-          "penalty": 15.0
+          "penalty": 14.4
         }
       ],
       "layer": "Collectors",
