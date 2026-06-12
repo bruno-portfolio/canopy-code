@@ -27,10 +27,19 @@ class GitConfig:
 
 
 @dataclass(frozen=True)
+class ScoreConfig:
+    cc_threshold: int = 10
+    complexity_spread: float = 1.5
+    worst_function: float = 1.5
+    dead_ratio: float = 0.75
+    coverage_weight: float = 25.0
+
+
+@dataclass(frozen=True)
 class ThresholdsConfig:
-    mi_healthy: int = 40
-    mi_moderate: int = 20
-    churn_high: int = 20
+    score_healthy: int = 75
+    score_moderate: int = 50
+    risk_hotspot: float = 0.4
     min_loc: int = 50
 
 
@@ -49,6 +58,7 @@ class Config:
     layers: dict[str, LayerConfig] = field(default_factory=dict)
     vulture: VultureConfig = field(default_factory=VultureConfig)
     git: GitConfig = field(default_factory=GitConfig)
+    score: ScoreConfig = field(default_factory=ScoreConfig)
     thresholds: ThresholdsConfig = field(default_factory=ThresholdsConfig)
     output: OutputConfig = field(default_factory=OutputConfig)
     ignore: list[str] = field(default_factory=list)
@@ -61,6 +71,7 @@ def _field_names(cls: type) -> frozenset[str]:
 _KNOWN_TOP_KEYS = _field_names(Config)
 _KNOWN_VULTURE_KEYS = _field_names(VultureConfig)
 _KNOWN_GIT_KEYS = _field_names(GitConfig)
+_KNOWN_SCORE_KEYS = _field_names(ScoreConfig)
 _KNOWN_THRESHOLDS_KEYS = _field_names(ThresholdsConfig)
 _KNOWN_OUTPUT_KEYS = _field_names(OutputConfig)
 _KNOWN_LAYER_KEYS = _field_names(LayerConfig)
@@ -94,6 +105,7 @@ def _parse_config(raw: dict) -> Config:
 
     vulture_raw = filtered.get("vulture") or {}
     git_raw = filtered.get("git") or {}
+    score_raw = filtered.get("score") or {}
     thresholds_raw = filtered.get("thresholds") or {}
     output_raw = filtered.get("output") or {}
 
@@ -104,6 +116,7 @@ def _parse_config(raw: dict) -> Config:
         layers=_parse_layers(filtered.get("layers")),
         vulture=VultureConfig(**_parse_sub(vulture_raw, _KNOWN_VULTURE_KEYS)),
         git=GitConfig(**_parse_sub(git_raw, _KNOWN_GIT_KEYS)),
+        score=ScoreConfig(**_parse_sub(score_raw, _KNOWN_SCORE_KEYS)),
         thresholds=ThresholdsConfig(**_parse_sub(thresholds_raw, _KNOWN_THRESHOLDS_KEYS)),
         output=OutputConfig(**_parse_sub(output_raw, _KNOWN_OUTPUT_KEYS)),
         ignore=filtered.get("ignore", []),
@@ -146,10 +159,15 @@ def validate_config(config: Config, project_dir: str) -> None:
     if config.module_depth < 1:
         raise exceptions.ConfigError(f"module_depth must be >= 1, got {config.module_depth}")
 
-    if config.thresholds.mi_healthy <= config.thresholds.mi_moderate:
+    if config.thresholds.score_healthy <= config.thresholds.score_moderate:
         raise exceptions.ConfigError(
-            f"mi_healthy ({config.thresholds.mi_healthy}) must be greater than "
-            f"mi_moderate ({config.thresholds.mi_moderate})"
+            f"score_healthy ({config.thresholds.score_healthy}) must be greater than "
+            f"score_moderate ({config.thresholds.score_moderate})"
+        )
+
+    if not 0.0 <= config.thresholds.risk_hotspot <= 1.0:
+        raise exceptions.ConfigError(
+            f"risk_hotspot must be between 0 and 1, got {config.thresholds.risk_hotspot}"
         )
 
     if config.output.width <= 0:

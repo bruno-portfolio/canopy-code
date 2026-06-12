@@ -26,9 +26,9 @@ class TestThemeDefaults:
 
     def test_default_thresholds(self):
         t = Theme()
-        assert t.mi_healthy == 40
-        assert t.mi_moderate == 20
-        assert t.churn_high == 20
+        assert t.score_healthy == 75
+        assert t.score_moderate == 50
+        assert t.risk_hotspot == 0.4
 
     def test_default_star_count(self):
         t = Theme()
@@ -43,27 +43,27 @@ class TestThemeDefaults:
 class TestHealthColors:
     def test_healthy_above_threshold(self):
         t = Theme()
-        hc = health_colors(t, 50.0)
+        hc = health_colors(t, 90.0)
         assert hc is t.healthy
 
     def test_healthy_at_boundary(self):
         t = Theme()
-        hc = health_colors(t, 40.0)
+        hc = health_colors(t, 75.0)
         assert hc is t.healthy
 
     def test_moderate_range(self):
         t = Theme()
-        hc = health_colors(t, 30.0)
+        hc = health_colors(t, 60.0)
         assert hc is t.moderate
 
     def test_moderate_at_boundary(self):
         t = Theme()
-        hc = health_colors(t, 20.0)
+        hc = health_colors(t, 50.0)
         assert hc is t.moderate
 
     def test_complex_below_moderate(self):
         t = Theme()
-        hc = health_colors(t, 10.0)
+        hc = health_colors(t, 30.0)
         assert hc is t.complex
 
     def test_complex_zero(self):
@@ -72,7 +72,7 @@ class TestHealthColors:
         assert hc is t.complex
 
     def test_custom_thresholds(self):
-        t = Theme(mi_healthy=80, mi_moderate=50)
+        t = Theme(score_healthy=80, score_moderate=50)
         assert health_colors(t, 90.0) is t.healthy
         assert health_colors(t, 60.0) is t.moderate
         assert health_colors(t, 30.0) is t.complex
@@ -86,11 +86,13 @@ class TestThemeFromConfig:
         assert t.height == 900
 
     def test_copies_thresholds(self):
-        cfg = Config(thresholds=ThresholdsConfig(mi_healthy=60, mi_moderate=30, churn_high=15))
+        cfg = Config(
+            thresholds=ThresholdsConfig(score_healthy=80, score_moderate=40, risk_hotspot=0.3)
+        )
         t = theme_from_config(cfg)
-        assert t.mi_healthy == 60
-        assert t.mi_moderate == 30
-        assert t.churn_high == 15
+        assert t.score_healthy == 80
+        assert t.score_moderate == 40
+        assert t.risk_hotspot == 0.3
 
     def test_preserves_default_colors(self):
         cfg = Config()

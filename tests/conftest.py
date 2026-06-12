@@ -55,9 +55,9 @@ def sample_config() -> Config:
         vulture=VultureConfig(min_confidence=60, exclude_types=["attribute"]),
         git=GitConfig(churn_days=30),
         thresholds=ThresholdsConfig(
-            mi_healthy=40,
-            mi_moderate=20,
-            churn_high=20,
+            score_healthy=75,
+            score_moderate=50,
+            risk_hotspot=0.2,
             min_loc=50,
         ),
         output=OutputConfig(path="docs/canopy.svg", width=1000, height=800),

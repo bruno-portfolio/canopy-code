@@ -407,7 +407,7 @@ class TestInitPyHandling:
 
 
 class TestModuleZeroLines:
-    def test_empty_file(self):
+    def test_empty_module_filtered_out(self):
         cfg = Config(source="src/mypkg", module_depth=2)
         file_data = {"sub/empty.py": 0}
         radon = [
@@ -424,10 +424,8 @@ class TestModuleZeroLines:
                 churn=[],
             )
 
-        mod = result.modules[0]
-        assert mod.lines == 0
-        # weight_total=0 → defaults to MI 100.0
-        assert mod.mi == 100.0
+        # zero lines and zero functions: a ghost package, not a node
+        assert result.modules == []
 
 
 # ---------------------------------------------------------------------------
@@ -683,3 +681,213 @@ class TestVultureExcludeTypes:
             exclude_types=frozenset(),
         )
         assert counts == {"mypkg.sub": 2}
+
+
+# ---------------------------------------------------------------------------
+# aggregate — composite score fields
+# ---------------------------------------------------------------------------
+
+
+class TestScoreFields:
+    def _aggregate(self, functions, dead=0):
+        cfg = Config(source="src/mypkg", module_depth=2)
+        radon = [RawRadonResult(path="src/mypkg/sub/a.py", mi=70.0, rank="A", functions=functions)]
+        vulture = [
+            RawVultureResult("src/mypkg/sub/a.py", i, "function", f"f{i}", 80) for i in range(dead)
+        ]
+        with _mock_files({"sub/a.py": 100}):
+            return aggregate(
+                cfg=cfg,
+                source_path="/project/src/mypkg",
+                imports=[],
+                radon=radon,
+                vulture=vulture,
+                churn=[],
+            ).modules[0]
+
+    def test_clean_module_scores_100(self):
+        mod = self._aggregate([RawFunctionCC("f", 2, False, "", 1)])
+        assert mod.score == 100.0
+        assert mod.cc_max == 2
+        assert mod.n_cc_over == 0
+        assert mod.factors == ()
+
+    def test_complex_functions_counted(self):
+        mod = self._aggregate(
+            [
+                RawFunctionCC("a", 12, False, "", 1),
+                RawFunctionCC("b", 24, False, "", 10),
+                RawFunctionCC("c", 3, False, "", 20),
+            ]
+        )
+        assert mod.cc_max == 24
+        assert mod.n_cc_over == 2
+        assert mod.score < 60.0
+        assert any("worst function CC 24" in f.label for f in mod.factors)
+
+    def test_dead_code_penalised(self):
+        mod = self._aggregate([RawFunctionCC("f", 2, False, "", 1)], dead=2)
+        assert mod.dead == 2
+        assert mod.score < 100.0
+
+
+class TestRiskField:
+    def test_churn_outside_source_does_not_flatten_risk(self):
+        cfg = Config(source="src/mypkg", module_depth=2)
+        radon = [
+            RawRadonResult(
+                path="src/mypkg/hot/a.py",
+                mi=50.0,
+                rank="A",
+                functions=[RawFunctionCC("f", 20, False, "", 1)],
+            ),
+        ]
+        churn = [
+            RawChurnResult("src/mypkg/hot/a.py", 10),
+            RawChurnResult("tests/test_hot.py", 300),
+        ]
+        with _mock_files({"hot/a.py": 100}):
+            result = aggregate(
+                cfg=cfg,
+                source_path="/project/src/mypkg",
+                imports=[],
+                radon=radon,
+                vulture=[],
+                churn=churn,
+            )
+        # tests/ churn must not become the normalisation max
+        assert result.modules[0].risk > 0.2
+
+    def test_risk_relative_to_max_churn(self):
+        cfg = Config(source="src/mypkg", module_depth=2)
+        radon = [
+            RawRadonResult(
+                path="src/mypkg/hot/a.py",
+                mi=50.0,
+                rank="A",
+                functions=[RawFunctionCC("f", 20, False, "", 1)],
+            ),
+            RawRadonResult(
+                path="src/mypkg/calm/b.py",
+                mi=90.0,
+                rank="A",
+                functions=[RawFunctionCC("g", 2, False, "", 1)],
+            ),
+        ]
+        churn = [
+            RawChurnResult("src/mypkg/hot/a.py", 20),
+            RawChurnResult("src/mypkg/calm/b.py", 18),
+        ]
+        with _mock_files({"hot/a.py": 100, "calm/b.py": 100}):
+            result = aggregate(
+                cfg=cfg,
+                source_path="/project/src/mypkg",
+                imports=[],
+                radon=radon,
+                vulture=[],
+                churn=churn,
+            )
+        by_name = {m.name: m for m in result.modules}
+        assert by_name["mypkg.hot"].risk > 0.2
+        assert by_name["mypkg.calm"].risk == 0.0
+
+
+# ---------------------------------------------------------------------------
+# aggregate — ignore patterns
+# ---------------------------------------------------------------------------
+
+
+class TestIgnorePatterns:
+    def test_ignored_files_excluded_from_collectors(self):
+        cfg = Config(source="src/mypkg", module_depth=2, ignore=["vendored/**"])
+        radon = [
+            RawRadonResult(
+                path="src/mypkg/sub/a.py",
+                mi=70.0,
+                rank="A",
+                functions=[RawFunctionCC("f", 2, False, "", 1)],
+            ),
+            RawRadonResult(
+                path="src/mypkg/vendored/lib.py",
+                mi=10.0,
+                rank="C",
+                functions=[RawFunctionCC("g", 30, False, "", 1)],
+            ),
+        ]
+        with _mock_files({"sub/a.py": 100}):
+            result = aggregate(
+                cfg=cfg,
+                source_path="/project/src/mypkg",
+                imports=[],
+                radon=radon,
+                vulture=[],
+                churn=[],
+            )
+        assert [m.name for m in result.modules] == ["mypkg.sub"]
+        assert result.modules[0].score == 100.0
+
+    def test_project_relative_pattern_also_matches(self):
+        cfg = Config(source="src/mypkg", module_depth=2, ignore=["src/mypkg/gen/**"])
+        radon = [
+            RawRadonResult(
+                path="src/mypkg/gen/models.py",
+                mi=10.0,
+                rank="C",
+                functions=[RawFunctionCC("g", 30, False, "", 1)],
+            ),
+        ]
+        with _mock_files({"sub/a.py": 50}):
+            result = aggregate(
+                cfg=cfg,
+                source_path="/project/src/mypkg",
+                imports=[],
+                radon=radon,
+                vulture=[],
+                churn=[],
+            )
+        assert [m.name for m in result.modules] == ["mypkg.sub"]
+        assert result.modules[0].cc_max == 0
+
+
+# ---------------------------------------------------------------------------
+# aggregate — coverage
+# ---------------------------------------------------------------------------
+
+
+class TestCoverageAggregation:
+    def test_coverage_ratio_per_module(self):
+        from canopy.collectors import RawCoverageResult
+
+        cfg = Config(source="src/mypkg", module_depth=2)
+        coverage = [
+            RawCoverageResult("src/mypkg/sub/a.py", covered=30, statements=40),
+            RawCoverageResult("src/mypkg/sub/b.py", covered=10, statements=40),
+        ]
+        with _mock_files({"sub/a.py": 50, "sub/b.py": 50}):
+            result = aggregate(
+                cfg=cfg,
+                source_path="/project/src/mypkg",
+                imports=[],
+                radon=[],
+                vulture=[],
+                churn=[],
+                coverage=coverage,
+            )
+        mod = result.modules[0]
+        assert mod.coverage == 0.5
+        assert any("coverage 50%" in f.label for f in mod.factors)
+        assert mod.score == 87.5
+
+    def test_no_coverage_data_score_unaffected(self):
+        cfg = Config(source="src/mypkg", module_depth=2)
+        with _mock_files({"sub/a.py": 50}):
+            result = aggregate(
+                cfg=cfg,
+                source_path="/project/src/mypkg",
+                imports=[],
+                radon=[],
+                vulture=[],
+                churn=[],
+            )
+        assert result.modules[0].coverage is None
+        assert result.modules[0].score == 100.0

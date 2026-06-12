@@ -33,9 +33,9 @@ class TestLoadConfig:
             git:
               churn_days: 30
             thresholds:
-              mi_healthy: 40
-              mi_moderate: 20
-              churn_high: 20
+              score_healthy: 75
+              score_moderate: 50
+              risk_hotspot: 0.2
               min_loc: 50
             output:
               path: docs/canopy.svg
@@ -53,7 +53,7 @@ class TestLoadConfig:
         assert cfg.layers["infra"].label == "Infrastructure"
         assert cfg.vulture.min_confidence == 60
         assert cfg.git.churn_days == 30
-        assert cfg.thresholds.mi_healthy == 40
+        assert cfg.thresholds.score_healthy == 75
         assert cfg.output.path == "docs/canopy.svg"
         assert cfg.ignore == ["tests/**"]
 
@@ -84,8 +84,27 @@ class TestLoadConfig:
     def test_missing_thresholds_section(self, tmp_config_file):
         path = tmp_config_file("project: test\n")
         cfg = load_config(path)
-        assert cfg.thresholds.mi_healthy == 40
-        assert cfg.thresholds.mi_moderate == 20
+        assert cfg.thresholds.score_healthy == 75
+        assert cfg.thresholds.score_moderate == 50
+
+    def test_missing_score_section(self, tmp_config_file):
+        path = tmp_config_file("project: test\n")
+        cfg = load_config(path)
+        assert cfg.score.cc_threshold == 10
+        assert cfg.score.complexity_spread == 1.5
+
+    def test_score_section(self, tmp_config_file):
+        path = tmp_config_file("score:\n  cc_threshold: 15\n  dead_ratio: 1.0\n")
+        cfg = load_config(path)
+        assert cfg.score.cc_threshold == 15
+        assert cfg.score.dead_ratio == 1.0
+        assert cfg.score.worst_function == 1.5
+
+    def test_legacy_mi_thresholds_ignored(self, tmp_config_file):
+        path = tmp_config_file("thresholds:\n  mi_healthy: 65\n  mi_moderate: 40\n")
+        cfg = load_config(path)
+        assert cfg.thresholds.score_healthy == 75
+        assert cfg.thresholds.score_moderate == 50
 
     def test_missing_output_section(self, tmp_config_file):
         path = tmp_config_file("project: test\n")
@@ -228,8 +247,17 @@ class TestValidateConfig:
     def test_threshold_ordering(self, tmp_path):
         from canopy.config import ThresholdsConfig
 
-        cfg = Config(thresholds=ThresholdsConfig(mi_healthy=20, mi_moderate=20))
-        with pytest.raises(ConfigError, match="mi_healthy.*must be greater than.*mi_moderate"):
+        cfg = Config(thresholds=ThresholdsConfig(score_healthy=50, score_moderate=50))
+        with pytest.raises(
+            ConfigError, match="score_healthy.*must be greater than.*score_moderate"
+        ):
+            validate_config(cfg, str(tmp_path))
+
+    def test_risk_hotspot_range(self, tmp_path):
+        from canopy.config import ThresholdsConfig
+
+        cfg = Config(thresholds=ThresholdsConfig(risk_hotspot=1.5))
+        with pytest.raises(ConfigError, match="risk_hotspot must be between 0 and 1"):
             validate_config(cfg, str(tmp_path))
 
     def test_output_dimensions_zero(self, tmp_path):

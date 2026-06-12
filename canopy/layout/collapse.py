@@ -16,17 +16,26 @@ def _make_collapsed(layer_name: str, modules: list[Module]) -> Module:
     total_lines = 0
     total_funcs = 0
     mi_weighted_sum = 0.0
+    score_weighted_sum = 0.0
     max_cc = 0.0
+    max_cc_max = 0
+    total_cc_over = 0
     total_dead = 0
     total_churn = 0
+    max_risk = 0.0
     for m in modules:
         total_lines += m.lines
         total_funcs += m.funcs
         mi_weighted_sum += m.mi * m.lines
+        score_weighted_sum += m.score * m.lines
         max_cc = max(max_cc, m.cc)
+        max_cc_max = max(max_cc_max, m.cc_max)
+        total_cc_over += m.n_cc_over
         total_dead += m.dead
         total_churn += m.churn
+        max_risk = max(max_risk, m.risk)
     mi = mi_weighted_sum / total_lines if total_lines > 0 else 0.0
+    score = score_weighted_sum / total_lines if total_lines > 0 else 100.0
     return Module(
         name=_collapsed_name(layer_name),
         lines=total_lines,
@@ -37,6 +46,10 @@ def _make_collapsed(layer_name: str, modules: list[Module]) -> Module:
         churn=total_churn,
         layer=layer_name,
         desc=f"+{len(modules)} more",
+        score=round(score, 1),
+        cc_max=max_cc_max,
+        n_cc_over=total_cc_over,
+        risk=max_risk,
     )
 
 

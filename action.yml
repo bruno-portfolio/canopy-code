@@ -72,6 +72,10 @@ runs:
         INPUT_COMMIT_MSG: ${{ inputs.commit-message }}
       run: |
         git add "${INPUT_OUTPUT_SVG}"
+        HISTORY="$(dirname "${INPUT_OUTPUT_SVG}")/canopy-history.json"
+        if [ -f "${HISTORY}" ]; then
+          git add "${HISTORY}"
+        fi
         if [ -n "${INPUT_OUTPUT_HTML}" ]; then
           git add "${INPUT_OUTPUT_HTML}"
         fi

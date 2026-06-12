@@ -4,7 +4,7 @@ import dataclasses
 
 from canopy import config, models
 
-_UNCATEGORIZED = "uncategorized"
+UNCATEGORIZED = "uncategorized"
 
 
 def _match_layer(module_name: str, cfg: config.Config) -> str:
@@ -13,7 +13,7 @@ def _match_layer(module_name: str, cfg: config.Config) -> str:
         for suffix in layer_config.modules:
             if suffix in parts:
                 return layer_name
-    return _UNCATEGORIZED
+    return UNCATEGORIZED
 
 
 def _default_label(name: str) -> str:
@@ -31,9 +31,9 @@ def _build_layer_list(
     if has_uncategorized:
         layers.append(
             models.Layer(
-                name=_UNCATEGORIZED,
+                name=UNCATEGORIZED,
                 ring=len(cfg.layers),
-                label=_default_label(_UNCATEGORIZED),
+                label=_default_label(UNCATEGORIZED),
             )
         )
     return layers
@@ -50,7 +50,7 @@ def assign_layers(
     updated_modules: list[models.Module] = []
     for module in project_data.modules:
         layer = _match_layer(module.name, cfg)
-        if layer == _UNCATEGORIZED:
+        if layer == UNCATEGORIZED:
             has_uncategorized = True
         updated_modules.append(dataclasses.replace(module, layer=layer))
 

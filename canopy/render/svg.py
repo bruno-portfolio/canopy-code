@@ -15,10 +15,11 @@ from dataclasses import dataclass, field
 from random import Random
 from xml.sax.saxutils import escape
 
+from canopy.cycles import find_cycle_edges
 from canopy.layout.collapse import COLLAPSED_PREFIX
 from canopy.models import Dependency, LayoutResult, Module, NodePosition, ProjectData
 
-from .theme import HealthColors, Theme, compute_stats, health_colors
+from .theme import HealthColors, ProjectStats, Theme, compute_stats, health_colors
 
 
 def _stable_hash(s: str) -> int:
@@ -181,13 +182,21 @@ def _render_ring_labels(ctx: _RenderContext) -> None:
 
 
 def _render_dependencies(ctx: _RenderContext) -> None:
-    """Render dependency lines hidden by default (shown via HTML hover).
+    """Render dependency lines with three visibility tiers.
 
-    Each line gets data-from/data-to attributes for JS to find connections.
-    All lines start with opacity 0 — the HTML viewer reveals them on hover.
-    In static SVG (GitHub), deps are invisible (clean diagram).
+    Import-cycle edges are always visible in red — an architecture smell
+    worth showing even in the static README SVG. The heaviest non-cycle
+    edges get a faint trace; everything else starts at opacity 0 and is
+    revealed on hover by the HTML viewer via data-from/data-to.
     """
     t = ctx.theme
+    cycle_edges = find_cycle_edges(ctx.project_data.dependencies)
+    heaviest = {
+        (d.from_module, d.to_module)
+        for d in sorted(ctx.project_data.dependencies, key=lambda d: d.weight, reverse=True)[
+            : t.dep_visible_count
+        ]
+    }
     for dep in ctx.project_data.dependencies:
         if dep.weight < 1.0:
             continue
@@ -195,20 +204,30 @@ def _render_dependencies(ctx: _RenderContext) -> None:
         if not resolved:
             continue
         src_mod, _tgt_mod, sx, sy, tx, ty = resolved
-        if ctx.core_layer and (
-            src_mod.layer == ctx.core_layer or _tgt_mod.layer == ctx.core_layer
+        is_cycle = (dep.from_module, dep.to_module) in cycle_edges
+        if (
+            not is_cycle
+            and ctx.core_layer
+            and (src_mod.layer == ctx.core_layer or _tgt_mod.layer == ctx.core_layer)
         ):
             continue
+        if is_cycle:
+            stroke, width, opacity = t.cycle_stroke, 1.2, 0.55
+        elif (dep.from_module, dep.to_module) in heaviest:
+            stroke, width, opacity = t.dep_significant, 0.8, t.dep_visible_opacity
+        else:
+            stroke, width, opacity = t.dep_significant, 0.8, 0.0
+        cycle_attr = ' data-cycle="1"' if is_cycle else ""
         mx, my = (sx + tx) / 2, (sy + ty) / 2
         cpx = mx + (ctx.cx - mx) * 0.3
         cpy = my + (ctx.cy - my) * 0.3
         ctx.parts.append(
-            f'<path data-from="{src_mod.name}" data-to="{_tgt_mod.name}"'
+            f'<path data-from="{src_mod.name}" data-to="{_tgt_mod.name}"{cycle_attr}'
             f' d="M{_fmt(sx)},{_fmt(sy)}'
             f" Q{_fmt(cpx)},{_fmt(cpy)}"
             f' {_fmt(tx)},{_fmt(ty)}"'
-            f' fill="none" stroke="{t.dep_significant}"'
-            f' stroke-width="0.8" opacity="0"/>'
+            f' fill="none" stroke="{stroke}"'
+            f' stroke-width="{width}" opacity="{opacity}"/>'
         )
 
 
@@ -226,12 +245,12 @@ def _render_single_node(ctx: _RenderContext, node: NodePosition) -> None:
     mod = ctx.module_map.get(node.name)
     if not mod:
         return
-    hc = health_colors(ctx.theme, mod.mi)
+    hc = health_colors(ctx.theme, mod.score)
     is_core = ctx.core_layer and mod.layer == ctx.core_layer
     ctx.parts.append(f'<g data-module="{escape(node.name)}">')
     _render_ambient_glow(ctx, node, hc, is_core)
-    if mod.churn >= ctx.theme.churn_high:
-        _render_churn_pulse(ctx, node, hc)
+    if mod.risk >= ctx.theme.risk_hotspot:
+        _render_hotspot_ring(ctx, node)
     _render_node_body(ctx, node, hc)
     if mod.dead > 0:
         _render_dead_spots(ctx, node, mod)
@@ -256,20 +275,20 @@ def _render_ambient_glow(
     )
 
 
-def _render_churn_pulse(ctx: _RenderContext, node: NodePosition, hc: HealthColors) -> None:
+def _render_hotspot_ring(ctx: _RenderContext, node: NodePosition) -> None:
     t = ctx.theme
     sx, sy = ctx.svg_xy(node)
     r = node.radius
-    r_max = _fmt(r + 4)
-    r_val = _fmt(r)
+    r_max = _fmt(r + 5)
+    r_val = _fmt(r + 1)
     ctx.parts.append(
         f'<circle cx="{_fmt(sx)}" cy="{_fmt(sy)}" r="{r_val}"'
-        f' fill="none" stroke="{t.churn_stroke}" stroke-width="1.5"'
-        f' opacity="0.4" filter="url(#churnPulse)">'
+        f' fill="none" stroke="{t.hotspot_stroke}" stroke-width="1.8"'
+        f' opacity="0.6" filter="url(#churnPulse)">'
         f'<animate attributeName="r" values="{r_val};{r_max};{r_val}"'
-        f' dur="3s" repeatCount="indefinite"/>'
-        f'<animate attributeName="opacity" values="0.4;0.1;0.4"'
-        f' dur="3s" repeatCount="indefinite"/>'
+        f' dur="2s" repeatCount="indefinite"/>'
+        f'<animate attributeName="opacity" values="0.6;0.2;0.6"'
+        f' dur="2s" repeatCount="indefinite"/>'
         f"</circle>"
     )
 
@@ -322,6 +341,22 @@ def _render_dead_spots(ctx: _RenderContext, node: NodePosition, mod: Module) -> 
 # ---------------------------------------------------------------------------
 
 
+def _shorten_label(segment: str, radius: float) -> str:
+    """Middle-cut truncation sized to the node: ``noticias_agricolas`` -> ``notic..olas``."""
+    if radius > 22:
+        limit = 13
+    elif radius > 15:
+        limit = 11
+    else:
+        limit = 9
+    if len(segment) <= limit:
+        return segment
+    keep = limit - 2
+    head = (keep + 1) // 2
+    tail = keep - head
+    return f"{segment[:head]}..{segment[-tail:]}"
+
+
 def _render_node_label(
     ctx: _RenderContext, node: NodePosition, mod: Module, is_core: bool
 ) -> None:
@@ -334,9 +369,7 @@ def _render_node_label(
     else:
         segment = node.name.rsplit(".", 1)[-1]
         segment = segment.lstrip("_")
-        if len(segment) > 9:
-            segment = segment[:9] + ".."
-        label = escape(segment)
+        label = escape(_shorten_label(segment, node.radius))
 
     # Font sizing
     if is_core:
@@ -412,15 +445,15 @@ def _render_core_decoration(ctx: _RenderContext) -> None:
 # ---------------------------------------------------------------------------
 
 
-def _render_stats_bar(ctx: _RenderContext) -> None:
+def _render_stats_bar(ctx: _RenderContext, s: ProjectStats) -> None:
     t = ctx.theme
-    s = compute_stats(ctx.project_data.modules, t)
     if s.modules == 0:
         return
 
     stats = (
         f"{s.modules} modules | {s.lines} lines | "
-        f"{s.healthy_pct}% healthy {s.moderate_pct}% moderate {s.complex_pct}% complex"
+        f"{s.healthy_pct}% healthy {s.moderate_pct}% moderate {s.complex_pct}% unhealthy"
+        f" (by loc)"
     )
     if s.dead_total > 0:
         stats += f" | {s.dead_total} dead"
@@ -430,9 +463,105 @@ def _render_stats_bar(ctx: _RenderContext) -> None:
     ctx.parts.append(
         f'<text x="{_fmt(t.width / 2)}" y="{_fmt(y)}"'
         f' font-family="monospace" font-size="9"'
-        f' fill="{t.text_very_muted}" text-anchor="middle"'
+        f' fill="{t.text_muted}" text-anchor="middle"'
         f' dy="0.35em">{stats}</text>'
     )
+
+
+def _render_header(ctx: _RenderContext, s: ProjectStats, delta: float | None) -> None:
+    """Project name + grade verdict block, top-left.
+
+    The grade letter is the single takeaway a README viewer gets in one
+    glance; name and trend support it.
+    """
+    t = ctx.theme
+    if s.modules == 0:
+        return
+    hc = health_colors(t, s.score)
+
+    x = 28.0
+    if ctx.project_name:
+        ctx.parts.append(
+            f'<text x="{_fmt(x)}" y="30.0"'
+            f' font-family="monospace" font-size="15" font-weight="700"'
+            f' fill="{t.text_primary}">{escape(ctx.project_name)}</text>'
+        )
+    ctx.parts.append(
+        f'<text x="{_fmt(x)}" y="46.0"'
+        f' font-family="monospace" font-size="8" letter-spacing="2"'
+        f' fill="{t.text_secondary}">CODE HEALTH</text>'
+    )
+    ctx.parts.append(
+        f'<text x="{_fmt(x - 2)}" y="86.0"'
+        f' font-family="monospace" font-size="44" font-weight="700"'
+        f' fill="{hc.base}">{escape(s.grade)}</text>'
+    )
+    score_line = f"{s.score:.0f}/100"
+    ctx.parts.append(
+        f'<text x="{_fmt(x + 36)}" y="72.0"'
+        f' font-family="monospace" font-size="12" font-weight="600"'
+        f' fill="{t.text_primary}">{escape(score_line)}</text>'
+    )
+    if delta is not None and abs(delta) >= 0.05:
+        arrow = "&#9650;" if delta > 0 else "&#9660;"
+        delta_color = t.healthy.base if delta > 0 else t.complex.base
+        delta_text = f"{arrow} {abs(delta):.1f}"
+        ctx.parts.append(
+            f'<text x="{_fmt(x + 36)}" y="85.0"'
+            f' font-family="monospace" font-size="10" font-weight="600"'
+            f' fill="{delta_color}">{delta_text}</text>'
+        )
+
+
+_LEGEND_ITEMS = (
+    ("healthy", "Healthy"),
+    ("moderate", "Moderate"),
+    ("complex", "Unhealthy"),
+    ("hotspot", "Hotspot"),
+    ("cycle", "Cycle"),
+    ("dead", "Dead code"),
+)
+
+
+def _render_legend(ctx: _RenderContext) -> None:
+    """Compact legend embedded in the SVG so the README image self-explains."""
+    t = ctx.theme
+    y = 28.0
+    spacing = 14.0
+    char_w = 5.4
+    x = t.width - 24.0
+    for kind, label in reversed(_LEGEND_ITEMS):
+        x -= len(label) * char_w
+        tx = x
+        sx = x - 10.0
+        if kind == "healthy":
+            swatch = f'<circle cx="{_fmt(sx)}" cy="{_fmt(y - 3)}" r="4" fill="{t.healthy.base}"/>'
+        elif kind == "moderate":
+            swatch = f'<circle cx="{_fmt(sx)}" cy="{_fmt(y - 3)}" r="4" fill="{t.moderate.base}"/>'
+        elif kind == "complex":
+            swatch = f'<circle cx="{_fmt(sx)}" cy="{_fmt(y - 3)}" r="4" fill="{t.complex.base}"/>'
+        elif kind == "hotspot":
+            swatch = (
+                f'<circle cx="{_fmt(sx)}" cy="{_fmt(y - 3)}" r="4" fill="none"'
+                f' stroke="{t.hotspot_stroke}" stroke-width="1.5"/>'
+            )
+        elif kind == "cycle":
+            swatch = (
+                f'<line x1="{_fmt(sx - 5)}" y1="{_fmt(y - 3)}" x2="{_fmt(sx + 5)}"'
+                f' y2="{_fmt(y - 3)}" stroke="{t.cycle_stroke}" stroke-width="1.5"/>'
+            )
+        else:
+            swatch = (
+                f'<circle cx="{_fmt(sx)}" cy="{_fmt(y - 3)}" r="2.5"'
+                f' fill="{t.dead_fill}" stroke="{t.text_muted}" stroke-width="0.5"/>'
+            )
+        ctx.parts.append(swatch)
+        ctx.parts.append(
+            f'<text x="{_fmt(tx)}" y="{_fmt(y)}"'
+            f' font-family="monospace" font-size="8"'
+            f' fill="{t.text_secondary}">{escape(label)}</text>'
+        )
+        x -= 10.0 + spacing
 
 
 # ---------------------------------------------------------------------------
@@ -459,11 +588,14 @@ def render_svg(
     project_data: ProjectData,
     layout: LayoutResult,
     theme: Theme,
+    delta: float | None = None,
 ) -> str:
     """Render a complete SVG string from project data and layout.
 
-    Returns a GitHub-safe inline SVG with no ``<style>``, ``<script>``,
-    ``onclick``, external fonts, or ``dominant-baseline``.
+    ``delta`` is the project score change since the previous recorded run,
+    shown next to the grade badge. Returns a GitHub-safe inline SVG with no
+    ``<style>``, ``<script>``, ``onclick``, external fonts, or
+    ``dominant-baseline``.
     """
     ctx = _RenderContext(
         theme=theme,
@@ -487,9 +619,12 @@ def render_svg(
     _render_rings(ctx)
     _render_ring_labels(ctx)
     _render_dependencies(ctx)
+    stats = compute_stats(project_data.modules, theme)
     _render_nodes(ctx)
     _render_core_decoration(ctx)
-    _render_stats_bar(ctx)
+    _render_header(ctx, stats, delta)
+    _render_legend(ctx)
+    _render_stats_bar(ctx, stats)
     _render_watermark(ctx)
 
     ctx.parts.append("</svg>")

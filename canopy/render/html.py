@@ -13,7 +13,7 @@ from html import escape as html_escape
 
 from canopy.models import ProjectData
 
-from .theme import ProjectStats, Theme, compute_stats
+from .theme import ProjectStats, Theme, compute_stats, health_colors
 
 
 def render_html(
@@ -59,10 +59,15 @@ def _build_module_data(project_data: ProjectData, theme: Theme) -> str:
         modules[m.name] = {
             "lines": m.lines,
             "funcs": m.funcs,
+            "score": m.score,
             "mi": round(m.mi, 2),
             "cc": round(m.cc, 2),
+            "cc_max": m.cc_max,
             "dead": m.dead,
             "churn": m.churn,
+            "risk": m.risk,
+            "coverage": round(m.coverage, 3) if m.coverage is not None else None,
+            "factors": [{"label": f.label, "penalty": f.penalty} for f in m.factors],
             "layer": layer_map.get(m.layer, m.layer),
             "desc": m.desc,
         }
@@ -88,11 +93,14 @@ def _html_template(
     moderate_pct = stats.moderate_pct
     complex_pct = stats.complex_pct
     dead_total = stats.dead_total
+    grade = stats.grade
+    project_score = f"{stats.score:.0f}"
 
     # Theme colors for CSS
     healthy_base = theme.healthy.base
     moderate_base = theme.moderate.base
     complex_base = theme.complex.base
+    grade_color = health_colors(theme, stats.score).base
 
     return f"""\
 <!DOCTYPE html>
@@ -222,10 +230,16 @@ def _html_template(
   .legend-swatch.moderate {{ background: radial-gradient(circle at 40% 35%, {theme.moderate.light}, {theme.moderate.dark}); }}
   .legend-swatch.complex {{ background: radial-gradient(circle at 40% 35%, {theme.complex.light}, {theme.complex.dark}); }}
   .legend-swatch.dead {{ background: #484f58; opacity: 0.5; }}
-  .legend-swatch.churn {{
+  .legend-swatch.hotspot {{
     background: transparent;
-    border: 2px solid {theme.churn_stroke};
-    box-shadow: 0 0 4px rgba(188,140,255,0.4);
+    border: 2px solid {theme.hotspot_stroke};
+    box-shadow: 0 0 4px rgba(240,136,62,0.4);
+  }}
+  .legend-swatch.cycle {{
+    width: 20px;
+    height: 2px;
+    border-radius: 1px;
+    background: {theme.cycle_stroke};
   }}
   .legend-swatch.dep {{
     width: 20px;
@@ -340,6 +354,17 @@ def _html_template(
   .tooltip.visible {{ opacity: 1; }}
   .tooltip .tt-name {{ font-weight: 600; color: #e6edf3; font-size: 13px; margin-bottom: 4px; }}
   .tooltip .tt-desc {{ color: #58a6ff; font-size: 10px; margin-bottom: 8px; }}
+  .tooltip .tt-factors {{
+    margin: 2px 0 6px;
+    padding: 4px 8px;
+    background: #0d1117;
+    border-radius: 4px;
+    font-size: 10px;
+    color: #7d8590;
+  }}
+  .tooltip .tt-factors:empty {{ display: none; }}
+  .tooltip .tt-factor {{ display: flex; justify-content: space-between; gap: 16px; padding: 1px 0; }}
+  .tooltip .tt-factor .tt-penalty {{ color: {complex_base}; font-weight: 600; }}
   .tooltip .tt-row {{ display: flex; justify-content: space-between; gap: 24px; padding: 2px 0; color: #7d8590; }}
   .tooltip .tt-row .tt-val {{ color: #c9d1d9; font-weight: 500; }}
   .tooltip .tt-bar {{ height: 3px; background: #21262d; border-radius: 2px; margin-top: 8px; overflow: hidden; }}
@@ -517,9 +542,10 @@ def _html_template(
   <div class="legend">
     <div class="legend-item"><div class="legend-swatch healthy"></div>Healthy</div>
     <div class="legend-item"><div class="legend-swatch moderate"></div>Moderate</div>
-    <div class="legend-item"><div class="legend-swatch complex"></div>Complex</div>
+    <div class="legend-item"><div class="legend-swatch complex"></div>Unhealthy</div>
     <div class="legend-item"><div class="legend-swatch dead"></div>Dead code</div>
-    <div class="legend-item"><div class="legend-swatch churn"></div>High churn</div>
+    <div class="legend-item"><div class="legend-swatch hotspot"></div>Hotspot (churn &times; low health)</div>
+    <div class="legend-item"><div class="legend-swatch cycle"></div>Import cycle</div>
     <div class="legend-item"><div class="legend-swatch dep"></div>Dependency</div>
   </div>
 
@@ -533,11 +559,13 @@ def _html_template(
   </div>
 
   <div class="stats-bar">
+    <div class="stat"><span class="stat-value" style="color:{grade_color}">{grade}</span><span class="stat-label">Grade</span></div>
+    <div class="stat"><span class="stat-value" style="color:{grade_color}">{project_score}</span><span class="stat-label">Score</span></div>
     <div class="stat"><span class="stat-value">{n_modules}</span><span class="stat-label">Modules</span></div>
     <div class="stat"><span class="stat-value">{n_lines}</span><span class="stat-label">Lines</span></div>
-    <div class="stat"><span class="stat-value green">{healthy_pct}%</span><span class="stat-label">Healthy</span></div>
-    <div class="stat"><span class="stat-value yellow">{moderate_pct}%</span><span class="stat-label">Moderate</span></div>
-    <div class="stat"><span class="stat-value red">{complex_pct}%</span><span class="stat-label">Complex</span></div>
+    <div class="stat"><span class="stat-value green">{healthy_pct}%</span><span class="stat-label">Healthy (loc)</span></div>
+    <div class="stat"><span class="stat-value yellow">{moderate_pct}%</span><span class="stat-label">Moderate (loc)</span></div>
+    <div class="stat"><span class="stat-value red">{complex_pct}%</span><span class="stat-label">Unhealthy (loc)</span></div>
     <div class="stat"><span class="stat-value" style="color:#484f58">{dead_total}</span><span class="stat-label">Dead Code</span></div>
   </div>
 </div>
@@ -545,12 +573,15 @@ def _html_template(
 <div class="tooltip" id="tooltip">
   <div class="tt-name" id="tt-name"></div>
   <div class="tt-desc" id="tt-desc"></div>
+  <div class="tt-row"><span>Health score</span><span class="tt-val" id="tt-score"></span></div>
+  <div class="tt-factors" id="tt-factors"></div>
   <div class="tt-row"><span>Lines</span><span class="tt-val" id="tt-lines"></span></div>
   <div class="tt-row"><span>Functions</span><span class="tt-val" id="tt-funcs"></span></div>
+  <div class="tt-row"><span>Complexity avg / max</span><span class="tt-val" id="tt-cc"></span></div>
+  <div class="tt-row"><span>Coverage</span><span class="tt-val" id="tt-coverage"></span></div>
   <div class="tt-row"><span>Maintainability</span><span class="tt-val" id="tt-mi"></span></div>
-  <div class="tt-row"><span>Complexity avg</span><span class="tt-val" id="tt-cc"></span></div>
   <div class="tt-row"><span>Dead code</span><span class="tt-val" id="tt-dead"></span></div>
-  <div class="tt-row"><span>Churn (30d)</span><span class="tt-val" id="tt-churn"></span></div>
+  <div class="tt-row"><span>Churn</span><span class="tt-val" id="tt-churn"></span></div>
   <div class="tt-row"><span>Layer</span><span class="tt-val" id="tt-layer"></span></div>
   <div class="tt-bar"><div class="tt-bar-fill" id="tt-bar"></div></div>
 </div>
@@ -572,14 +603,14 @@ def _html_template(
 const DATA = {json_data};
 
 // --- Constants ---
-const MI_HEALTHY = {theme.mi_healthy};
-const MI_MODERATE = {theme.mi_moderate};
+const SCORE_HEALTHY = {theme.score_healthy};
+const SCORE_MODERATE = {theme.score_moderate};
 const HEALTHY_COLOR = '{healthy_base}';
 const MODERATE_COLOR = '{moderate_base}';
 const COMPLEX_COLOR = '{complex_base}';
 
-function miColor(mi) {{
-  return mi >= MI_HEALTHY ? HEALTHY_COLOR : mi >= MI_MODERATE ? MODERATE_COLOR : COMPLEX_COLOR;
+function scoreColor(score) {{
+  return score >= SCORE_HEALTHY ? HEALTHY_COLOR : score >= SCORE_MODERATE ? MODERATE_COLOR : COMPLEX_COLOR;
 }}
 
 // --- Tooltip ---
@@ -615,19 +646,37 @@ function showTooltip(name, cx, cy) {{
   if (!m) return;
   document.getElementById('tt-name').textContent = DATA.project_name + '/' + name;
   document.getElementById('tt-desc').textContent = m.desc || '';
+  var scoreEl = document.getElementById('tt-score');
+  scoreEl.textContent = m.score + '/100';
+  scoreEl.style.color = scoreColor(m.score);
+  var factorsEl = document.getElementById('tt-factors');
+  factorsEl.innerHTML = '';
+  (m.factors || []).forEach(function(f) {{
+    var row = document.createElement('div');
+    row.className = 'tt-factor';
+    var label = document.createElement('span');
+    label.textContent = f.label;
+    var penalty = document.createElement('span');
+    penalty.className = 'tt-penalty';
+    penalty.textContent = '-' + f.penalty;
+    row.appendChild(label);
+    row.appendChild(penalty);
+    factorsEl.appendChild(row);
+  }});
   document.getElementById('tt-lines').textContent = m.lines.toLocaleString();
   document.getElementById('tt-funcs').textContent = m.funcs;
   var miEl = document.getElementById('tt-mi');
   miEl.textContent = m.mi + '/100';
-  miEl.style.color = miColor(m.mi);
-  document.getElementById('tt-cc').textContent = m.cc;
-  document.getElementById('tt-dead').textContent = m.dead > 0 ? m.dead + ' functions' : '0';
+  document.getElementById('tt-cc').textContent = m.cc + ' / ' + m.cc_max;
+  document.getElementById('tt-coverage').textContent =
+    m.coverage === null ? 'n/a' : Math.round(m.coverage * 100) + '%';
+  document.getElementById('tt-dead').textContent = m.dead > 0 ? m.dead + ' symbols' : '0';
   document.getElementById('tt-churn').textContent = m.churn + ' commits';
   document.getElementById('tt-layer').textContent = m.layer;
 
   var bar = document.getElementById('tt-bar');
-  bar.style.width = m.mi + '%';
-  bar.style.background = miColor(m.mi);
+  bar.style.width = m.score + '%';
+  bar.style.background = scoreColor(m.score);
 
   tooltip.classList.add('visible');
   positionTooltip(cx, cy);
@@ -760,14 +809,14 @@ var sidebarList = document.getElementById('sidebar-list');
 
 function buildSidebarList() {{
   var entries = Object.keys(DATA.modules).map(function(name) {{
-    return {{ name: name, mi: DATA.modules[name].mi }};
-  }}).sort(function(a, b) {{ return a.mi - b.mi; }});
+    return {{ name: name, score: DATA.modules[name].score }};
+  }}).sort(function(a, b) {{ return a.score - b.score; }});
   sidebarList.innerHTML = '';
   entries.forEach(function(e) {{
     var item = document.createElement('div');
     item.className = 'sidebar-item';
     item.dataset.module = e.name;
-    item.innerHTML = '<span>' + e.name + '</span><span class="sidebar-mi" style="color:' + miColor(e.mi) + '">' + e.mi + '</span>';
+    item.innerHTML = '<span>' + e.name + '</span><span class="sidebar-mi" style="color:' + scoreColor(e.score) + '">' + e.score + '</span>';
     item.addEventListener('click', function() {{ zoomToModule(e.name); }});
     sidebarList.appendChild(item);
   }});

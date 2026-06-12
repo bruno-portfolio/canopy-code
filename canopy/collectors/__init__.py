@@ -43,3 +43,10 @@ class RawVultureResult:
 class RawChurnResult:
     path: str
     commit_count: int
+
+
+@dataclass(frozen=True)
+class RawCoverageResult:
+    path: str
+    covered: int
+    statements: int
