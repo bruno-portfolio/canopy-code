@@ -135,3 +135,78 @@ class TestEdgeCases:
         edges = collect_imports(str(pkg))
 
         assert edges == [RawImportEdge("alpha", "mypkg.beta")]
+
+
+class TestTypeCheckingImports:
+    def test_type_checking_import_ignored(self, tmp_path):
+        pkg = tmp_path / "mypkg"
+        pkg.mkdir()
+        (pkg / "__init__.py").write_text("")
+        (pkg / "alpha.py").write_text(
+            "from typing import TYPE_CHECKING\nif TYPE_CHECKING:\n    from mypkg import beta\n"
+        )
+        (pkg / "beta.py").write_text("")
+
+        edges = collect_imports(str(pkg))
+
+        assert edges == []
+
+    def test_typing_attribute_form_ignored(self, tmp_path):
+        pkg = tmp_path / "mypkg"
+        pkg.mkdir()
+        (pkg / "__init__.py").write_text("")
+        (pkg / "alpha.py").write_text(
+            "import typing\nif typing.TYPE_CHECKING:\n    from mypkg import beta\n"
+        )
+        (pkg / "beta.py").write_text("")
+
+        edges = collect_imports(str(pkg))
+
+        assert edges == []
+
+    def test_else_branch_still_counted(self, tmp_path):
+        pkg = tmp_path / "mypkg"
+        pkg.mkdir()
+        (pkg / "__init__.py").write_text("")
+        (pkg / "alpha.py").write_text(
+            "from typing import TYPE_CHECKING\n"
+            "if TYPE_CHECKING:\n"
+            "    from mypkg import beta\n"
+            "else:\n    from mypkg.gamma import helper\n"
+        )
+        (pkg / "beta.py").write_text("")
+        (pkg / "gamma.py").write_text("")
+
+        edges = collect_imports(str(pkg))
+
+        assert edges == [RawImportEdge("alpha", "mypkg.gamma")]
+
+    def test_lazy_import_inside_function_still_counted(self, tmp_path):
+        pkg = tmp_path / "mypkg"
+        pkg.mkdir()
+        (pkg / "__init__.py").write_text("")
+        (pkg / "alpha.py").write_text(
+            "def build():\n    from mypkg.beta import helper\n    return helper\n"
+        )
+        (pkg / "beta.py").write_text("")
+
+        edges = collect_imports(str(pkg))
+
+        assert edges == [RawImportEdge("alpha", "mypkg.beta")]
+
+    def test_runtime_import_after_type_checking_block_counted(self, tmp_path):
+        pkg = tmp_path / "mypkg"
+        pkg.mkdir()
+        (pkg / "__init__.py").write_text("")
+        (pkg / "alpha.py").write_text(
+            "from typing import TYPE_CHECKING\n"
+            "if TYPE_CHECKING:\n"
+            "    from mypkg import beta\n"
+            "from mypkg.gamma import helper\n"
+        )
+        (pkg / "beta.py").write_text("")
+        (pkg / "gamma.py").write_text("")
+
+        edges = collect_imports(str(pkg))
+
+        assert edges == [RawImportEdge("alpha", "mypkg.gamma")]

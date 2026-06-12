@@ -223,8 +223,8 @@ hover tooltips, click-to-pin, zoom (scroll) and pan (drag).
 
 - **Dynamic imports** (`importlib.import_module`, `__import__`) are not
   detected by the static AST parser.
-- **`TYPE_CHECKING` imports** are treated as real imports (no special
-  handling yet).
+- **`TYPE_CHECKING` imports** are ignored (they never execute at runtime);
+  lazy imports inside functions still count as real dependencies.
 - **Shallow clones** produce no churn data — use `fetch-depth: 0` in CI.
 - **`exclude_types`** in Vulture config is a v1 allowlist; per-module
   exclusions are not yet supported.

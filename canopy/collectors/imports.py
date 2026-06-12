@@ -56,6 +56,32 @@ def _resolve_import(
     return targets
 
 
+def _is_type_checking_test(test: ast.expr) -> bool:
+    if isinstance(test, ast.Name):
+        return test.id == "TYPE_CHECKING"
+    if isinstance(test, ast.Attribute):
+        return test.attr == "TYPE_CHECKING"
+    return False
+
+
+def _type_checking_import_ids(tree: ast.AST) -> set[int]:
+    """Ids of import nodes inside ``if TYPE_CHECKING:`` bodies.
+
+    Those imports never execute at runtime, so they are not real
+    dependencies — counting them creates false cycles. The else branch
+    does execute and is kept.
+    """
+    ids: set[int] = set()
+    for node in ast.walk(tree):
+        if not (isinstance(node, ast.If) and _is_type_checking_test(node.test)):
+            continue
+        for stmt in node.body:
+            for child in ast.walk(stmt):
+                if isinstance(child, ast.Import | ast.ImportFrom):
+                    ids.add(id(child))
+    return ids
+
+
 def _extract_imports_from_file(
     file: Path,
     root: Path,
@@ -78,11 +104,15 @@ def _extract_imports_from_file(
         warnings.warn(f"Skipping {file}: {exc}", stacklevel=2)
         return []
 
+    type_checking_ids = _type_checking_import_ids(tree)
     edges: list[RawImportEdge] = []
     seen: set[tuple[str, str]] = set()
 
     for node in ast.walk(tree):
-        if not isinstance(node, (ast.Import, ast.ImportFrom)):
+        if not isinstance(node, ast.Import | ast.ImportFrom):
+            continue
+
+        if id(node) in type_checking_ids:
             continue
 
         if isinstance(node, ast.ImportFrom) and node.module == "__future__":
