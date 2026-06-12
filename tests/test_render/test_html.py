@@ -137,23 +137,28 @@ class TestDblclickReset:
         assert "svgEl.style.transition = ''" in html
 
 
-# ── Tooltip MI color ─────────────────────────────────────────────────────
+# ── Tooltip score color ──────────────────────────────────────────────────
 
 
-class TestTooltipMiColor:
-    def test_mi_color_function(self):
+class TestTooltipScoreColor:
+    def test_score_color_function(self):
         html = _render()
-        assert "function miColor(mi)" in html
+        assert "function scoreColor(score)" in html
 
-    def test_mi_constants(self):
+    def test_score_constants(self):
         t = make_theme()
         html = _render(t=t)
-        assert f"MI_HEALTHY = {t.mi_healthy}" in html
-        assert f"MI_MODERATE = {t.mi_moderate}" in html
+        assert f"SCORE_HEALTHY = {t.score_healthy}" in html
+        assert f"SCORE_MODERATE = {t.score_moderate}" in html
 
-    def test_tooltip_uses_mi_color(self):
+    def test_tooltip_uses_score_color(self):
         html = _render()
-        assert "miEl.style.color = miColor(m.mi)" in html
+        assert "scoreEl.style.color = scoreColor(m.score)" in html
+
+    def test_tooltip_shows_factors(self):
+        html = _render()
+        assert 'id="tt-factors"' in html
+        assert "tt-penalty" in html
 
 
 # ── Sidebar ──────────────────────────────────────────────────────────────

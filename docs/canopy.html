@@ -125,10 +125,16 @@
   .legend-swatch.moderate { background: radial-gradient(circle at 40% 35%, #e3b341, #9e6a03); }
   .legend-swatch.complex { background: radial-gradient(circle at 40% 35%, #f85149, #b62324); }
   .legend-swatch.dead { background: #484f58; opacity: 0.5; }
-  .legend-swatch.churn {
+  .legend-swatch.hotspot {
     background: transparent;
-    border: 2px solid #bc8cff;
-    box-shadow: 0 0 4px rgba(188,140,255,0.4);
+    border: 2px solid #f0883e;
+    box-shadow: 0 0 4px rgba(240,136,62,0.4);
+  }
+  .legend-swatch.cycle {
+    width: 20px;
+    height: 2px;
+    border-radius: 1px;
+    background: #f85149;
   }
   .legend-swatch.dep {
     width: 20px;
@@ -243,6 +249,17 @@
   .tooltip.visible { opacity: 1; }
   .tooltip .tt-name { font-weight: 600; color: #e6edf3; font-size: 13px; margin-bottom: 4px; }
   .tooltip .tt-desc { color: #58a6ff; font-size: 10px; margin-bottom: 8px; }
+  .tooltip .tt-factors {
+    margin: 2px 0 6px;
+    padding: 4px 8px;
+    background: #0d1117;
+    border-radius: 4px;
+    font-size: 10px;
+    color: #7d8590;
+  }
+  .tooltip .tt-factors:empty { display: none; }
+  .tooltip .tt-factor { display: flex; justify-content: space-between; gap: 16px; padding: 1px 0; }
+  .tooltip .tt-factor .tt-penalty { color: #da3633; font-weight: 600; }
   .tooltip .tt-row { display: flex; justify-content: space-between; gap: 24px; padding: 2px 0; color: #7d8590; }
   .tooltip .tt-row .tt-val { color: #c9d1d9; font-weight: 500; }
   .tooltip .tt-bar { height: 3px; background: #21262d; border-radius: 2px; margin-top: 8px; overflow: hidden; }
@@ -407,8 +424,8 @@
   <div class="header">
     <h1>canopy-code</h1>
     <span class="badge">canopy-code</span>
-    <span class="badge">9 modules</span>
-    <span class="badge">2,954 lines</span>
+    <span class="badge">12 modules</span>
+    <span class="badge">3,694 lines</span>
     <div class="search-box">
       <input id="search-input" placeholder="Search modules..." />
       <span id="search-count"></span>
@@ -420,9 +437,10 @@
   <div class="legend">
     <div class="legend-item"><div class="legend-swatch healthy"></div>Healthy</div>
     <div class="legend-item"><div class="legend-swatch moderate"></div>Moderate</div>
-    <div class="legend-item"><div class="legend-swatch complex"></div>Complex</div>
+    <div class="legend-item"><div class="legend-swatch complex"></div>Unhealthy</div>
     <div class="legend-item"><div class="legend-swatch dead"></div>Dead code</div>
-    <div class="legend-item"><div class="legend-swatch churn"></div>High churn</div>
+    <div class="legend-item"><div class="legend-swatch hotspot"></div>Hotspot (churn &times; low health)</div>
+    <div class="legend-item"><div class="legend-swatch cycle"></div>Import cycle</div>
     <div class="legend-item"><div class="legend-swatch dep"></div>Dependency</div>
   </div>
 
@@ -500,131 +518,176 @@
 <circle cx="588.6" cy="98.1" r="0.5" fill="#c9d1d9" opacity="0.5"/>
 <circle cx="948.6" cy="514.0" r="0.8" fill="#c9d1d9" opacity="0.3"/>
 <circle cx="68.3" cy="396.5" r="0.7" fill="#c9d1d9" opacity="0.3"/>
-<circle cx="500.0" cy="400.0" r="100.0" fill="none" stroke="#30363d" stroke-width="0.5" opacity="0.3"/>
-<circle cx="500.0" cy="400.0" r="173.3" fill="none" stroke="#30363d" stroke-width="0.5" opacity="0.3"/>
-<circle cx="500.0" cy="400.0" r="246.7" fill="none" stroke="#30363d" stroke-width="0.5" opacity="0.3"/>
+<circle cx="500.0" cy="400.0" r="114.3" fill="none" stroke="#30363d" stroke-width="0.5" opacity="0.3"/>
+<circle cx="500.0" cy="400.0" r="182.9" fill="none" stroke="#30363d" stroke-width="0.5" opacity="0.3"/>
+<circle cx="500.0" cy="400.0" r="251.4" fill="none" stroke="#30363d" stroke-width="0.5" opacity="0.3"/>
 <circle cx="500.0" cy="400.0" r="320.0" fill="none" stroke="#30363d" stroke-width="0.5" opacity="0.3"/>
-<text x="465.7" y="306.1" font-family="monospace" font-size="8" font-weight="600" fill="#484f58" text-anchor="start" transform="rotate(-70 465.7 306.1)">Collectors</text>
-<text x="440.6" y="237.2" font-family="monospace" font-size="8" font-weight="600" fill="#484f58" text-anchor="start" transform="rotate(-70 440.6 237.2)">Layout</text>
-<text x="415.4" y="168.3" font-family="monospace" font-size="8" font-weight="600" fill="#484f58" text-anchor="start" transform="rotate(-70 415.4 168.3)">Render</text>
+<text x="460.8" y="292.6" font-family="monospace" font-size="8" font-weight="600" fill="#484f58" text-anchor="start" transform="rotate(-70 460.8 292.6)">Collectors</text>
+<text x="437.3" y="228.2" font-family="monospace" font-size="8" font-weight="600" fill="#484f58" text-anchor="start" transform="rotate(-70 437.3 228.2)">Layout</text>
+<text x="413.8" y="163.8" font-family="monospace" font-size="8" font-weight="600" fill="#484f58" text-anchor="start" transform="rotate(-70 413.8 163.8)">Render</text>
 <text x="390.3" y="99.4" font-family="monospace" font-size="8" font-weight="600" fill="#484f58" text-anchor="start" transform="rotate(-70 390.3 99.4)">Uncategorized</text>
-<path data-from="canopy.aggregator" data-to="canopy" d="M410.6,707.2 Q499.2,402.7 587.2,100.4" fill="none" stroke="#58a6ff" stroke-width="0.8" opacity="0"/>
-<path data-from="canopy.aggregator" data-to="canopy.collectors" d="M410.6,707.2 Q468.7,542.5 500.0,500.0" fill="none" stroke="#58a6ff" stroke-width="0.8" opacity="0"/>
-<path data-from="canopy.collectors" data-to="canopy" d="M500.0,500.0 Q530.5,330.1 587.2,100.4" fill="none" stroke="#58a6ff" stroke-width="0.8" opacity="0"/>
-<path data-from="canopy.layout" data-to="canopy" d="M399.6,541.3 Q495.4,344.6 587.2,100.4" fill="none" stroke="#58a6ff" stroke-width="0.8" opacity="0"/>
-<path data-from="canopy.render" data-to="canopy.layout" d="M267.0,481.0 Q383.3,477.8 399.6,541.3" fill="none" stroke="#58a6ff" stroke-width="0.8" opacity="0"/>
+<path data-from="canopy.collectors" data-to="canopy" d="M500.0,514.3 Q392.5,408.7 192.8,310.6" fill="none" stroke="#58a6ff" stroke-width="0.8" opacity="0.12"/>
+<path data-from="canopy.layout" data-to="canopy" d="M394.0,549.0 Q355.4,420.9 192.8,310.6" fill="none" stroke="#58a6ff" stroke-width="0.8" opacity="0.0"/>
+<path data-from="canopy.render" data-to="canopy.layout" d="M262.5,482.6 Q379.8,481.1 394.0,549.0" fill="none" stroke="#58a6ff" stroke-width="0.8" opacity="0.0"/>
+<g data-module="canopy.aggregator">
+<circle cx="500.0" cy="328.7" r="57.5" fill="#2ea04355" opacity="0.1" filter="url(#softGlow)"/>
+<circle cx="501.0" cy="329.7" r="23.0" fill="#000000" opacity="0.3"/>
+<circle cx="500.0" cy="328.7" r="23.0" fill="#2ea043" filter="url(#nodeGlow)"/>
+<circle cx="500.0" cy="321.8" r="13.8" fill="#56d364" opacity="0.15"/>
+<circle cx="496.6" cy="320.6" r="4.6" fill="#ffffff" opacity="0.08"/>
+<text x="500.0" y="328.7" font-family="monospace" font-size="11" font-weight="700" fill="#c9d1d9" text-anchor="middle" dy="0.35em">aggregator</text>
+<text x="500.0" y="365.7" font-family="monospace" font-size="7" fill="#484f58" text-anchor="middle" dy="0.35em">362 loc</text>
+</g>
 <g data-module="canopy.config">
-<circle cx="500.0" cy="354.2" r="77.5" fill="#d2992255" opacity="0.1" filter="url(#softGlow)"/>
-<circle cx="501.0" cy="355.2" r="31.0" fill="#000000" opacity="0.3"/>
-<circle cx="500.0" cy="354.2" r="31.0" fill="#d29922" filter="url(#nodeGlow)"/>
-<circle cx="500.0" cy="344.9" r="18.6" fill="#e3b341" opacity="0.15"/>
-<circle cx="495.3" cy="343.3" r="6.2" fill="#ffffff" opacity="0.08"/>
-<circle cx="499.2" cy="369.4" r="2.1" fill="#1b1f23" opacity="0.7"/>
-<text x="500.0" y="354.2" font-family="monospace" font-size="11" font-weight="700" fill="#c9d1d9" text-anchor="middle" dy="0.35em">config</text>
-<text x="500.0" y="399.2" font-family="monospace" font-size="7" fill="#484f58" text-anchor="middle" dy="0.35em">159 loc</text>
+<circle cx="550.4" cy="349.6" r="57.5" fill="#2ea04355" opacity="0.1" filter="url(#softGlow)"/>
+<circle cx="551.4" cy="350.6" r="23.0" fill="#000000" opacity="0.3"/>
+<circle cx="550.4" cy="349.6" r="23.0" fill="#2ea043" filter="url(#nodeGlow)"/>
+<circle cx="550.4" cy="342.7" r="13.8" fill="#56d364" opacity="0.15"/>
+<circle cx="547.0" cy="341.5" r="4.6" fill="#ffffff" opacity="0.08"/>
+<text x="550.4" y="349.6" font-family="monospace" font-size="11" font-weight="700" fill="#c9d1d9" text-anchor="middle" dy="0.35em">config</text>
+<text x="550.4" y="386.6" font-family="monospace" font-size="7" fill="#484f58" text-anchor="middle" dy="0.35em">177 loc</text>
 </g>
 <g data-module="canopy.cli">
-<circle cx="545.8" cy="400.0" r="77.5" fill="#2ea04355" opacity="0.1" filter="url(#softGlow)"/>
-<circle cx="546.8" cy="401.0" r="31.0" fill="#000000" opacity="0.3"/>
-<circle cx="545.8" cy="400.0" r="31.0" fill="#2ea043" filter="url(#nodeGlow)"/>
-<circle cx="545.8" cy="390.7" r="18.6" fill="#56d364" opacity="0.15"/>
-<circle cx="541.2" cy="389.2" r="6.2" fill="#ffffff" opacity="0.08"/>
-<text x="545.8" y="400.0" font-family="monospace" font-size="11" font-weight="700" fill="#c9d1d9" text-anchor="middle" dy="0.35em">cli</text>
-<text x="545.8" y="445.0" font-family="monospace" font-size="7" fill="#484f58" text-anchor="middle" dy="0.35em">110 loc</text>
+<circle cx="571.3" cy="400.0" r="57.5" fill="#2ea04355" opacity="0.1" filter="url(#softGlow)"/>
+<circle cx="572.3" cy="401.0" r="23.0" fill="#000000" opacity="0.3"/>
+<circle cx="571.3" cy="400.0" r="23.0" fill="#2ea043" filter="url(#nodeGlow)"/>
+<circle cx="571.3" cy="393.1" r="13.8" fill="#56d364" opacity="0.15"/>
+<circle cx="567.9" cy="391.9" r="4.6" fill="#ffffff" opacity="0.08"/>
+<text x="571.3" y="400.0" font-family="monospace" font-size="11" font-weight="700" fill="#c9d1d9" text-anchor="middle" dy="0.35em">cli</text>
+<text x="571.3" y="437.0" font-family="monospace" font-size="7" fill="#484f58" text-anchor="middle" dy="0.35em">145 loc</text>
+</g>
+<g data-module="canopy.cycles">
+<circle cx="550.4" cy="450.4" r="57.5" fill="#d2992255" opacity="0.1" filter="url(#softGlow)"/>
+<circle cx="551.4" cy="451.4" r="23.0" fill="#000000" opacity="0.3"/>
+<circle cx="550.4" cy="450.4" r="23.0" fill="#d29922" filter="url(#nodeGlow)"/>
+<circle cx="550.4" cy="443.5" r="13.8" fill="#e3b341" opacity="0.15"/>
+<circle cx="547.0" cy="442.4" r="4.6" fill="#ffffff" opacity="0.08"/>
+<text x="550.4" y="450.4" font-family="monospace" font-size="11" font-weight="700" fill="#c9d1d9" text-anchor="middle" dy="0.35em">cycles</text>
+<text x="550.4" y="487.4" font-family="monospace" font-size="7" fill="#484f58" text-anchor="middle" dy="0.35em">102 loc</text>
+</g>
+<g data-module="canopy.score">
+<circle cx="500.0" cy="471.3" r="57.5" fill="#2ea04355" opacity="0.1" filter="url(#softGlow)"/>
+<circle cx="501.0" cy="472.3" r="23.0" fill="#000000" opacity="0.3"/>
+<circle cx="500.0" cy="471.3" r="23.0" fill="#2ea043" filter="url(#nodeGlow)"/>
+<circle cx="500.0" cy="464.4" r="13.8" fill="#56d364" opacity="0.15"/>
+<circle cx="496.6" cy="463.3" r="4.6" fill="#ffffff" opacity="0.08"/>
+<text x="500.0" y="471.3" font-family="monospace" font-size="11" font-weight="700" fill="#c9d1d9" text-anchor="middle" dy="0.35em">score</text>
+<text x="500.0" y="508.3" font-family="monospace" font-size="7" fill="#484f58" text-anchor="middle" dy="0.35em">91 loc</text>
 </g>
 <g data-module="canopy.models">
-<circle cx="500.0" cy="445.8" r="77.5" fill="#2ea04355" opacity="0.1" filter="url(#softGlow)"/>
-<circle cx="501.0" cy="446.8" r="31.0" fill="#000000" opacity="0.3"/>
-<circle cx="500.0" cy="445.8" r="31.0" fill="#2ea043" filter="url(#nodeGlow)"/>
-<circle cx="500.0" cy="436.5" r="18.6" fill="#56d364" opacity="0.15"/>
-<circle cx="495.3" cy="435.0" r="6.2" fill="#ffffff" opacity="0.08"/>
-<text x="500.0" y="445.8" font-family="monospace" font-size="11" font-weight="700" fill="#c9d1d9" text-anchor="middle" dy="0.35em">models</text>
-<text x="500.0" y="490.8" font-family="monospace" font-size="7" fill="#484f58" text-anchor="middle" dy="0.35em">60 loc</text>
+<circle cx="449.6" cy="450.4" r="57.5" fill="#2ea04355" opacity="0.1" filter="url(#softGlow)"/>
+<circle cx="450.6" cy="451.4" r="23.0" fill="#000000" opacity="0.3"/>
+<circle cx="449.6" cy="450.4" r="23.0" fill="#2ea043" filter="url(#nodeGlow)"/>
+<circle cx="449.6" cy="443.5" r="13.8" fill="#56d364" opacity="0.15"/>
+<circle cx="446.1" cy="442.4" r="4.6" fill="#ffffff" opacity="0.08"/>
+<text x="449.6" y="450.4" font-family="monospace" font-size="11" font-weight="700" fill="#c9d1d9" text-anchor="middle" dy="0.35em">models</text>
+<text x="449.6" y="487.4" font-family="monospace" font-size="7" fill="#484f58" text-anchor="middle" dy="0.35em">72 loc</text>
+</g>
+<g data-module="canopy.history">
+<circle cx="428.7" cy="400.0" r="57.5" fill="#2ea04355" opacity="0.1" filter="url(#softGlow)"/>
+<circle cx="429.7" cy="401.0" r="23.0" fill="#000000" opacity="0.3"/>
+<circle cx="428.7" cy="400.0" r="23.0" fill="#2ea043" filter="url(#nodeGlow)"/>
+<circle cx="428.7" cy="393.1" r="13.8" fill="#56d364" opacity="0.15"/>
+<circle cx="425.2" cy="391.9" r="4.6" fill="#ffffff" opacity="0.08"/>
+<text x="428.7" y="400.0" font-family="monospace" font-size="11" font-weight="700" fill="#c9d1d9" text-anchor="middle" dy="0.35em">history</text>
+<text x="428.7" y="437.0" font-family="monospace" font-size="7" fill="#484f58" text-anchor="middle" dy="0.35em">59 loc</text>
 </g>
 <g data-module="canopy.exceptions">
-<circle cx="454.2" cy="400.0" r="77.5" fill="#2ea04355" opacity="0.1" filter="url(#softGlow)"/>
-<circle cx="455.2" cy="401.0" r="31.0" fill="#000000" opacity="0.3"/>
-<circle cx="454.2" cy="400.0" r="31.0" fill="#2ea043" filter="url(#nodeGlow)"/>
-<circle cx="454.2" cy="390.7" r="18.6" fill="#56d364" opacity="0.15"/>
-<circle cx="449.5" cy="389.2" r="6.2" fill="#ffffff" opacity="0.08"/>
-<circle cx="471.1" cy="394.9" r="1.7" fill="#1b1f23" opacity="0.7"/>
-<circle cx="470.6" cy="388.0" r="2.0" fill="#1b1f23" opacity="0.7"/>
-<text x="454.2" y="400.0" font-family="monospace" font-size="11" font-weight="700" fill="#c9d1d9" text-anchor="middle" dy="0.35em">exception..</text>
-<text x="454.2" y="445.0" font-family="monospace" font-size="7" fill="#484f58" text-anchor="middle" dy="0.35em">18 loc</text>
+<circle cx="449.6" cy="349.6" r="57.5" fill="#2ea04355" opacity="0.1" filter="url(#softGlow)"/>
+<circle cx="450.6" cy="350.6" r="23.0" fill="#000000" opacity="0.3"/>
+<circle cx="449.6" cy="349.6" r="23.0" fill="#2ea043" filter="url(#nodeGlow)"/>
+<circle cx="449.6" cy="342.7" r="13.8" fill="#56d364" opacity="0.15"/>
+<circle cx="446.1" cy="341.5" r="4.6" fill="#ffffff" opacity="0.08"/>
+<circle cx="446.3" cy="341.8" r="1.7" fill="#1b1f23" opacity="0.7"/>
+<circle cx="449.6" cy="349.7" r="2.7" fill="#1b1f23" opacity="0.7"/>
+<text x="449.6" y="349.6" font-family="monospace" font-size="11" font-weight="700" fill="#c9d1d9" text-anchor="middle" dy="0.35em">exceptions</text>
+<text x="449.6" y="386.6" font-family="monospace" font-size="7" fill="#484f58" text-anchor="middle" dy="0.35em">18 loc</text>
 </g>
 <g data-module="canopy.collectors">
-<circle cx="500.0" cy="500.0" r="37.8" fill="#2ea04355" opacity="0.1" filter="url(#softGlow)"/>
-<circle cx="501.0" cy="501.0" r="15.1" fill="#000000" opacity="0.3"/>
-<circle cx="500.0" cy="500.0" r="15.1" fill="#2ea043" filter="url(#nodeGlow)"/>
-<circle cx="500.0" cy="495.5" r="9.1" fill="#56d364" opacity="0.15"/>
-<circle cx="497.7" cy="494.7" r="3.0" fill="#ffffff" opacity="0.08"/>
-<circle cx="498.7" cy="499.6" r="2.9" fill="#1b1f23" opacity="0.7"/>
-<circle cx="504.6" cy="496.7" r="1.7" fill="#1b1f23" opacity="0.7"/>
-<circle cx="493.6" cy="504.6" r="2.8" fill="#1b1f23" opacity="0.7"/>
-<circle cx="500.4" cy="504.7" r="2.9" fill="#1b1f23" opacity="0.7"/>
-<circle cx="500.5" cy="498.8" r="2.8" fill="#1b1f23" opacity="0.7"/>
-<text x="500.0" y="500.0" font-family="monospace" font-size="8" font-weight="600" fill="#c9d1d9" text-anchor="middle" dy="0.35em">collector..</text>
+<circle cx="500.0" cy="514.3" r="41.8" fill="#d2992255" opacity="0.1" filter="url(#softGlow)"/>
+<circle cx="501.0" cy="515.3" r="16.7" fill="#000000" opacity="0.3"/>
+<circle cx="500.0" cy="514.3" r="16.7" fill="#d29922" filter="url(#nodeGlow)"/>
+<circle cx="500.0" cy="509.3" r="10.0" fill="#e3b341" opacity="0.15"/>
+<circle cx="497.5" cy="508.4" r="3.3" fill="#ffffff" opacity="0.08"/>
+<circle cx="498.7" cy="513.3" r="2.4" fill="#1b1f23" opacity="0.7"/>
+<circle cx="503.7" cy="508.7" r="2.0" fill="#1b1f23" opacity="0.7"/>
+<circle cx="491.5" cy="515.6" r="2.3" fill="#1b1f23" opacity="0.7"/>
+<circle cx="497.3" cy="512.8" r="2.6" fill="#1b1f23" opacity="0.7"/>
+<circle cx="494.2" cy="508.8" r="1.5" fill="#1b1f23" opacity="0.7"/>
+<text x="500.0" y="514.3" font-family="monospace" font-size="8" font-weight="600" fill="#c9d1d9" text-anchor="middle" dy="0.35em">collectors</text>
 </g>
 <g data-module="canopy.layout">
-<circle cx="399.6" cy="541.3" r="37.2" fill="#2ea04355" opacity="0.1" filter="url(#softGlow)"/>
-<circle cx="400.6" cy="542.3" r="14.9" fill="#000000" opacity="0.3"/>
-<circle cx="399.6" cy="541.3" r="14.9" fill="#2ea043" filter="url(#nodeGlow)"/>
-<circle cx="399.6" cy="536.8" r="8.9" fill="#56d364" opacity="0.15"/>
-<circle cx="397.3" cy="536.1" r="3.0" fill="#ffffff" opacity="0.08"/>
-<text x="399.6" y="541.3" font-family="monospace" font-size="7" font-weight="600" fill="#c9d1d9" text-anchor="middle" dy="0.35em">layout</text>
+<circle cx="394.0" cy="549.0" r="37.8" fill="#d2992255" opacity="0.1" filter="url(#softGlow)"/>
+<circle cx="395.0" cy="550.0" r="15.1" fill="#000000" opacity="0.3"/>
+<circle cx="394.0" cy="549.0" r="15.1" fill="#d29922" filter="url(#nodeGlow)"/>
+<circle cx="394.0" cy="544.5" r="9.1" fill="#e3b341" opacity="0.15"/>
+<circle cx="391.8" cy="543.7" r="3.0" fill="#ffffff" opacity="0.08"/>
+<text x="394.0" y="549.0" font-family="monospace" font-size="8" font-weight="600" fill="#c9d1d9" text-anchor="middle" dy="0.35em">layout</text>
 </g>
 <g data-module="canopy.render">
-<circle cx="267.0" cy="481.0" r="74.1" fill="#2ea04355" opacity="0.1" filter="url(#softGlow)"/>
-<circle cx="268.0" cy="482.0" r="29.6" fill="#000000" opacity="0.3"/>
-<circle cx="267.0" cy="481.0" r="29.6" fill="#2ea043" filter="url(#nodeGlow)"/>
-<circle cx="267.0" cy="472.1" r="17.8" fill="#56d364" opacity="0.15"/>
-<circle cx="262.6" cy="470.7" r="5.9" fill="#ffffff" opacity="0.08"/>
-<circle cx="259.3" cy="478.8" r="2.1" fill="#1b1f23" opacity="0.7"/>
-<circle cx="279.4" cy="485.8" r="1.5" fill="#1b1f23" opacity="0.7"/>
-<text x="267.0" y="481.0" font-family="monospace" font-size="9" font-weight="600" fill="#c9d1d9" text-anchor="middle" dy="0.35em">render</text>
-<text x="267.0" y="524.7" font-family="monospace" font-size="7" fill="#484f58" text-anchor="middle" dy="0.35em">1562 loc</text>
-</g>
-<g data-module="canopy.aggregator">
-<circle cx="410.6" cy="707.2" r="29.2" fill="#d2992255" opacity="0.1" filter="url(#softGlow)"/>
-<circle cx="411.6" cy="708.2" r="11.7" fill="#000000" opacity="0.3"/>
-<circle cx="410.6" cy="707.2" r="11.7" fill="#d29922" filter="url(#nodeGlow)"/>
-<circle cx="410.6" cy="703.7" r="7.0" fill="#e3b341" opacity="0.15"/>
-<circle cx="408.8" cy="703.2" r="2.3" fill="#ffffff" opacity="0.08"/>
-<text x="410.6" y="707.2" font-family="monospace" font-size="7" font-weight="600" fill="#c9d1d9" text-anchor="middle" dy="0.35em">aggregato..</text>
+<circle cx="262.5" cy="482.6" r="78.7" fill="#2ea04355" opacity="0.1" filter="url(#softGlow)"/>
+<circle cx="263.5" cy="483.6" r="31.5" fill="#000000" opacity="0.3"/>
+<circle cx="262.5" cy="482.6" r="31.5" fill="#2ea043" filter="url(#nodeGlow)"/>
+<circle cx="262.5" cy="473.2" r="18.9" fill="#56d364" opacity="0.15"/>
+<circle cx="257.8" cy="471.6" r="6.3" fill="#ffffff" opacity="0.08"/>
+<circle cx="267.1" cy="473.7" r="1.9" fill="#1b1f23" opacity="0.7"/>
+<text x="262.5" y="482.6" font-family="monospace" font-size="9" font-weight="600" fill="#c9d1d9" text-anchor="middle" dy="0.35em">render</text>
+<text x="262.5" y="528.1" font-family="monospace" font-size="7" fill="#484f58" text-anchor="middle" dy="0.35em">1762 loc</text>
 </g>
 <g data-module="canopy">
-<circle cx="587.2" cy="100.4" r="25.0" fill="#2ea04355" opacity="0.1" filter="url(#softGlow)"/>
-<circle cx="588.2" cy="101.4" r="10.0" fill="#000000" opacity="0.3"/>
-<circle cx="587.2" cy="100.4" r="10.0" fill="#2ea043" filter="url(#nodeGlow)"/>
-<circle cx="587.2" cy="97.4" r="6.0" fill="#56d364" opacity="0.15"/>
-<circle cx="585.7" cy="96.9" r="2.0" fill="#ffffff" opacity="0.08"/>
-<text x="587.2" y="100.4" font-family="monospace" font-size="7" font-weight="600" fill="#c9d1d9" text-anchor="middle" dy="0.35em">canopy</text>
+<circle cx="192.8" cy="310.6" r="25.0" fill="#2ea04355" opacity="0.1" filter="url(#softGlow)"/>
+<circle cx="193.8" cy="311.6" r="10.0" fill="#000000" opacity="0.3"/>
+<circle cx="192.8" cy="310.6" r="10.0" fill="#2ea043" filter="url(#nodeGlow)"/>
+<circle cx="192.8" cy="307.6" r="6.0" fill="#56d364" opacity="0.15"/>
+<circle cx="191.3" cy="307.1" r="2.0" fill="#ffffff" opacity="0.08"/>
+<text x="192.8" y="310.6" font-family="monospace" font-size="7" font-weight="600" fill="#c9d1d9" text-anchor="middle" dy="0.35em">canopy</text>
 </g>
-<circle cx="500.0" cy="400.0" r="86.8" fill="none" stroke="#da3633" stroke-width="0.5" stroke-dasharray="4 6" opacity="0.3"><animateTransform attributeName="transform" type="rotate" from="0 500.0 400.0" to="360 500.0 400.0" dur="60s" repeatCount="indefinite"/></circle>
-<text x="500.0" y="780.0" font-family="monospace" font-size="9" fill="#30363d" text-anchor="middle" dy="0.35em">9 modules | 2954 lines | 78% healthy 22% moderate 0% complex | 10 dead</text>
+<circle cx="500.0" cy="400.0" r="104.3" fill="none" stroke="#da3633" stroke-width="0.5" stroke-dasharray="4 6" opacity="0.3"><animateTransform attributeName="transform" type="rotate" from="0 500.0 400.0" to="360 500.0 400.0" dur="60s" repeatCount="indefinite"/></circle>
+<text x="28.0" y="30.0" font-family="monospace" font-size="15" font-weight="700" fill="#c9d1d9">canopy-code</text>
+<text x="28.0" y="46.0" font-family="monospace" font-size="8" letter-spacing="2" fill="#8b949e">CODE HEALTH</text>
+<text x="26.0" y="86.0" font-family="monospace" font-size="44" font-weight="700" fill="#2ea043">B</text>
+<text x="64.0" y="72.0" font-family="monospace" font-size="12" font-weight="600" fill="#c9d1d9">85/100</text>
+<circle cx="917.4" cy="25.0" r="2.5" fill="#1b1f23" stroke="#484f58" stroke-width="0.5"/>
+<text x="927.4" y="28.0" font-family="monospace" font-size="8" fill="#8b949e">Dead code</text>
+<line x1="861.4" y1="25.0" x2="871.4" y2="25.0" stroke="#f85149" stroke-width="1.5"/>
+<text x="876.4" y="28.0" font-family="monospace" font-size="8" fill="#8b949e">Cycle</text>
+<circle cx="804.6" cy="25.0" r="4" fill="none" stroke="#f0883e" stroke-width="1.5"/>
+<text x="814.6" y="28.0" font-family="monospace" font-size="8" fill="#8b949e">Hotspot</text>
+<circle cx="732.0" cy="25.0" r="4" fill="#da3633"/>
+<text x="742.0" y="28.0" font-family="monospace" font-size="8" fill="#8b949e">Unhealthy</text>
+<circle cx="664.8" cy="25.0" r="4" fill="#d29922"/>
+<text x="674.8" y="28.0" font-family="monospace" font-size="8" fill="#8b949e">Moderate</text>
+<circle cx="603.0" cy="25.0" r="4" fill="#2ea043"/>
+<text x="613.0" y="28.0" font-family="monospace" font-size="8" fill="#8b949e">Healthy</text>
+<text x="500.0" y="780.0" font-family="monospace" font-size="9" fill="#484f58" text-anchor="middle" dy="0.35em">12 modules | 3694 lines | 73% healthy 27% moderate 0% unhealthy (by loc) | 8 dead</text>
 <text x="985.0" y="790.0" font-family="monospace" font-size="10" fill="#161b22" text-anchor="end" dy="0.35em">canopy-code</text>
 </svg>
   </div>
 
   <div class="stats-bar">
-    <div class="stat"><span class="stat-value">9</span><span class="stat-label">Modules</span></div>
-    <div class="stat"><span class="stat-value">2,954</span><span class="stat-label">Lines</span></div>
-    <div class="stat"><span class="stat-value green">78%</span><span class="stat-label">Healthy</span></div>
-    <div class="stat"><span class="stat-value yellow">22%</span><span class="stat-label">Moderate</span></div>
-    <div class="stat"><span class="stat-value red">0%</span><span class="stat-label">Complex</span></div>
-    <div class="stat"><span class="stat-value" style="color:#484f58">10</span><span class="stat-label">Dead Code</span></div>
+    <div class="stat"><span class="stat-value" style="color:#2ea043">B</span><span class="stat-label">Grade</span></div>
+    <div class="stat"><span class="stat-value" style="color:#2ea043">85</span><span class="stat-label">Score</span></div>
+    <div class="stat"><span class="stat-value">12</span><span class="stat-label">Modules</span></div>
+    <div class="stat"><span class="stat-value">3,694</span><span class="stat-label">Lines</span></div>
+    <div class="stat"><span class="stat-value green">73%</span><span class="stat-label">Healthy (loc)</span></div>
+    <div class="stat"><span class="stat-value yellow">27%</span><span class="stat-label">Moderate (loc)</span></div>
+    <div class="stat"><span class="stat-value red">0%</span><span class="stat-label">Unhealthy (loc)</span></div>
+    <div class="stat"><span class="stat-value" style="color:#484f58">8</span><span class="stat-label">Dead Code</span></div>
   </div>
 </div>
 
 <div class="tooltip" id="tooltip">
   <div class="tt-name" id="tt-name"></div>
   <div class="tt-desc" id="tt-desc"></div>
+  <div class="tt-row"><span>Health score</span><span class="tt-val" id="tt-score"></span></div>
+  <div class="tt-factors" id="tt-factors"></div>
   <div class="tt-row"><span>Lines</span><span class="tt-val" id="tt-lines"></span></div>
   <div class="tt-row"><span>Functions</span><span class="tt-val" id="tt-funcs"></span></div>
+  <div class="tt-row"><span>Complexity avg / max</span><span class="tt-val" id="tt-cc"></span></div>
+  <div class="tt-row"><span>Coverage</span><span class="tt-val" id="tt-coverage"></span></div>
   <div class="tt-row"><span>Maintainability</span><span class="tt-val" id="tt-mi"></span></div>
-  <div class="tt-row"><span>Complexity avg</span><span class="tt-val" id="tt-cc"></span></div>
   <div class="tt-row"><span>Dead code</span><span class="tt-val" id="tt-dead"></span></div>
-  <div class="tt-row"><span>Churn (30d)</span><span class="tt-val" id="tt-churn"></span></div>
+  <div class="tt-row"><span>Churn</span><span class="tt-val" id="tt-churn"></span></div>
   <div class="tt-row"><span>Layer</span><span class="tt-val" id="tt-layer"></span></div>
   <div class="tt-bar"><div class="tt-bar-fill" id="tt-bar"></div></div>
 </div>
@@ -649,90 +712,238 @@ const DATA = {
     "canopy": {
       "lines": 1,
       "funcs": 0,
+      "score": 100.0,
       "mi": 100.0,
       "cc": 0.0,
+      "cc_max": 0,
       "dead": 0,
-      "churn": 1,
+      "churn": 0,
+      "risk": 0.0,
+      "coverage": null,
+      "factors": [],
       "layer": "Uncategorized",
       "desc": ""
     },
     "canopy.aggregator": {
-      "lines": 243,
-      "funcs": 13,
-      "mi": 33.87,
-      "cc": 3.46,
+      "lines": 362,
+      "funcs": 18,
+      "score": 82.7,
+      "mi": 26.42,
+      "cc": 4.11,
+      "cc_max": 16,
       "dead": 0,
-      "churn": 3,
-      "layer": "Uncategorized",
+      "churn": 0,
+      "risk": 0.0,
+      "coverage": null,
+      "factors": [
+        {
+          "label": "1/18 functions CC>10",
+          "penalty": 8.3
+        },
+        {
+          "label": "worst function CC 16",
+          "penalty": 9.0
+        }
+      ],
+      "layer": "Core",
       "desc": ""
     },
     "canopy.cli": {
-      "lines": 110,
-      "funcs": 6,
-      "mi": 53.29,
-      "cc": 2.0,
+      "lines": 145,
+      "funcs": 8,
+      "score": 100.0,
+      "mi": 44.25,
+      "cc": 2.5,
+      "cc_max": 5,
       "dead": 0,
-      "churn": 2,
+      "churn": 0,
+      "risk": 0.0,
+      "coverage": null,
+      "factors": [],
       "layer": "Core",
       "desc": ""
     },
     "canopy.config": {
-      "lines": 159,
-      "funcs": 14,
-      "mi": 34.1,
-      "cc": 2.57,
-      "dead": 1,
-      "churn": 1,
+      "lines": 177,
+      "funcs": 15,
+      "score": 100.0,
+      "mi": 31.94,
+      "cc": 2.6,
+      "cc_max": 7,
+      "dead": 0,
+      "churn": 0,
+      "risk": 0.0,
+      "coverage": null,
+      "factors": [],
+      "layer": "Core",
+      "desc": ""
+    },
+    "canopy.cycles": {
+      "lines": 102,
+      "funcs": 5,
+      "score": 65.5,
+      "mi": 57.24,
+      "cc": 5.8,
+      "cc_max": 13,
+      "dead": 0,
+      "churn": 0,
+      "risk": 0.0,
+      "coverage": null,
+      "factors": [
+        {
+          "label": "1/5 functions CC>10",
+          "penalty": 30.0
+        },
+        {
+          "label": "worst function CC 13",
+          "penalty": 4.5
+        }
+      ],
       "layer": "Core",
       "desc": ""
     },
     "canopy.exceptions": {
       "lines": 18,
       "funcs": 5,
+      "score": 85.0,
       "mi": 100.0,
       "cc": 1.0,
+      "cc_max": 1,
       "dead": 2,
-      "churn": 1,
+      "churn": 0,
+      "risk": 0.0,
+      "coverage": null,
+      "factors": [
+        {
+          "label": "2 dead symbols",
+          "penalty": 15.0
+        }
+      ],
+      "layer": "Core",
+      "desc": ""
+    },
+    "canopy.history": {
+      "lines": 59,
+      "funcs": 3,
+      "score": 100.0,
+      "mi": 75.75,
+      "cc": 3.67,
+      "cc_max": 6,
+      "dead": 0,
+      "churn": 0,
+      "risk": 0.0,
+      "coverage": null,
+      "factors": [],
       "layer": "Core",
       "desc": ""
     },
     "canopy.models": {
-      "lines": 60,
-      "funcs": 7,
-      "mi": 100.0,
+      "lines": 72,
+      "funcs": 8,
+      "score": 100.0,
+      "mi": 52.29,
       "cc": 1.0,
+      "cc_max": 1,
       "dead": 0,
-      "churn": 3,
+      "churn": 0,
+      "risk": 0.0,
+      "coverage": null,
+      "factors": [],
+      "layer": "Core",
+      "desc": ""
+    },
+    "canopy.score": {
+      "lines": 91,
+      "funcs": 4,
+      "score": 100.0,
+      "mi": 69.72,
+      "cc": 4.0,
+      "cc_max": 8,
+      "dead": 0,
+      "churn": 0,
+      "risk": 0.0,
+      "coverage": null,
+      "factors": [],
       "layer": "Core",
       "desc": ""
     },
     "canopy.collectors": {
-      "lines": 407,
-      "funcs": 20,
-      "mi": 52.84,
-      "cc": 3.7,
+      "lines": 498,
+      "funcs": 24,
+      "score": 72.8,
+      "mi": 55.2,
+      "cc": 3.83,
+      "cc_max": 14,
       "dead": 5,
-      "churn": 6,
+      "churn": 0,
+      "risk": 0.0,
+      "coverage": null,
+      "factors": [
+        {
+          "label": "1/24 functions CC>10",
+          "penalty": 6.2
+        },
+        {
+          "label": "worst function CC 14",
+          "penalty": 6.0
+        },
+        {
+          "label": "5 dead symbols",
+          "penalty": 15.0
+        }
+      ],
       "layer": "Collectors",
       "desc": ""
     },
     "canopy.layout": {
-      "lines": 394,
+      "lines": 407,
       "funcs": 17,
-      "mi": 44.33,
-      "cc": 4.88,
+      "score": 62.4,
+      "mi": 43.58,
+      "cc": 4.94,
+      "cc_max": 24,
       "dead": 0,
-      "churn": 9,
+      "churn": 0,
+      "risk": 0.0,
+      "coverage": null,
+      "factors": [
+        {
+          "label": "2/17 functions CC>10",
+          "penalty": 17.6
+        },
+        {
+          "label": "worst function CC 24",
+          "penalty": 20.0
+        }
+      ],
       "layer": "Layout",
       "desc": ""
     },
     "canopy.render": {
-      "lines": 1562,
-      "funcs": 36,
-      "mi": 77.07,
-      "cc": 2.69,
-      "dead": 2,
-      "churn": 13,
+      "lines": 1762,
+      "funcs": 39,
+      "score": 91.3,
+      "mi": 52.6,
+      "cc": 3.13,
+      "cc_max": 12,
+      "dead": 1,
+      "churn": 0,
+      "risk": 0.0,
+      "coverage": null,
+      "factors": [
+        {
+          "label": "1/39 functions CC>10",
+          "penalty": 3.8
+        },
+        {
+          "label": "worst function CC 12",
+          "penalty": 3.0
+        },
+        {
+          "label": "1 dead symbols",
+          "penalty": 1.9
+        }
+      ],
       "layer": "Render",
       "desc": ""
     }
@@ -740,14 +951,14 @@ const DATA = {
 };
 
 // --- Constants ---
-const MI_HEALTHY = 40;
-const MI_MODERATE = 20;
+const SCORE_HEALTHY = 75;
+const SCORE_MODERATE = 50;
 const HEALTHY_COLOR = '#2ea043';
 const MODERATE_COLOR = '#d29922';
 const COMPLEX_COLOR = '#da3633';
 
-function miColor(mi) {
-  return mi >= MI_HEALTHY ? HEALTHY_COLOR : mi >= MI_MODERATE ? MODERATE_COLOR : COMPLEX_COLOR;
+function scoreColor(score) {
+  return score >= SCORE_HEALTHY ? HEALTHY_COLOR : score >= SCORE_MODERATE ? MODERATE_COLOR : COMPLEX_COLOR;
 }
 
 // --- Tooltip ---
@@ -783,19 +994,37 @@ function showTooltip(name, cx, cy) {
   if (!m) return;
   document.getElementById('tt-name').textContent = DATA.project_name + '/' + name;
   document.getElementById('tt-desc').textContent = m.desc || '';
+  var scoreEl = document.getElementById('tt-score');
+  scoreEl.textContent = m.score + '/100';
+  scoreEl.style.color = scoreColor(m.score);
+  var factorsEl = document.getElementById('tt-factors');
+  factorsEl.innerHTML = '';
+  (m.factors || []).forEach(function(f) {
+    var row = document.createElement('div');
+    row.className = 'tt-factor';
+    var label = document.createElement('span');
+    label.textContent = f.label;
+    var penalty = document.createElement('span');
+    penalty.className = 'tt-penalty';
+    penalty.textContent = '-' + f.penalty;
+    row.appendChild(label);
+    row.appendChild(penalty);
+    factorsEl.appendChild(row);
+  });
   document.getElementById('tt-lines').textContent = m.lines.toLocaleString();
   document.getElementById('tt-funcs').textContent = m.funcs;
   var miEl = document.getElementById('tt-mi');
   miEl.textContent = m.mi + '/100';
-  miEl.style.color = miColor(m.mi);
-  document.getElementById('tt-cc').textContent = m.cc;
-  document.getElementById('tt-dead').textContent = m.dead > 0 ? m.dead + ' functions' : '0';
+  document.getElementById('tt-cc').textContent = m.cc + ' / ' + m.cc_max;
+  document.getElementById('tt-coverage').textContent =
+    m.coverage === null ? 'n/a' : Math.round(m.coverage * 100) + '%';
+  document.getElementById('tt-dead').textContent = m.dead > 0 ? m.dead + ' symbols' : '0';
   document.getElementById('tt-churn').textContent = m.churn + ' commits';
   document.getElementById('tt-layer').textContent = m.layer;
 
   var bar = document.getElementById('tt-bar');
-  bar.style.width = m.mi + '%';
-  bar.style.background = miColor(m.mi);
+  bar.style.width = m.score + '%';
+  bar.style.background = scoreColor(m.score);
 
   tooltip.classList.add('visible');
   positionTooltip(cx, cy);
@@ -928,14 +1157,14 @@ var sidebarList = document.getElementById('sidebar-list');
 
 function buildSidebarList() {
   var entries = Object.keys(DATA.modules).map(function(name) {
-    return { name: name, mi: DATA.modules[name].mi };
-  }).sort(function(a, b) { return a.mi - b.mi; });
+    return { name: name, score: DATA.modules[name].score };
+  }).sort(function(a, b) { return a.score - b.score; });
   sidebarList.innerHTML = '';
   entries.forEach(function(e) {
     var item = document.createElement('div');
     item.className = 'sidebar-item';
     item.dataset.module = e.name;
-    item.innerHTML = '<span>' + e.name + '</span><span class="sidebar-mi" style="color:' + miColor(e.mi) + '">' + e.mi + '</span>';
+    item.innerHTML = '<span>' + e.name + '</span><span class="sidebar-mi" style="color:' + scoreColor(e.score) + '">' + e.score + '</span>';
     item.addEventListener('click', function() { zoomToModule(e.name); });
     sidebarList.appendChild(item);
   });

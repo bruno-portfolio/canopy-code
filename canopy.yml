@@ -4,7 +4,7 @@ module_depth: 2
 
 layers:
   core:
-    modules: ["cli", "models", "config", "exceptions"]
+    modules: ["cli", "models", "config", "exceptions", "aggregator", "score", "cycles", "history"]
     label: Core
   collectors:
     modules: ["collectors"]
@@ -24,9 +24,9 @@ git:
   churn_days: 30
 
 thresholds:
-  mi_healthy: 40
-  mi_moderate: 20
-  churn_high: 20
+  score_healthy: 75
+  score_moderate: 50
+  risk_hotspot: 0.4
   min_loc: 10
 
 output:

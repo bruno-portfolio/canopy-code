@@ -7,10 +7,11 @@
 
 **Orbital SVG visualizations of codebase health.**
 
-Canopy analyses your Python project — complexity, dead code, churn, and
-module structure — then renders a single SVG diagram you can embed in your
-README or CI artifacts. Click the diagram below for an interactive view
-with tooltips, zoom and pan.
+Canopy analyses your Python project — per-function complexity, dead code,
+git churn, test coverage and import structure — then renders a single SVG
+diagram with an A–F health grade you can embed in your README or CI
+artifacts. Click the diagram below for an interactive view with explainable
+per-module scores, zoom and pan.
 
 <p align="center">
   <a href="https://bruno-portfolio.github.io/canopy-code/canopy.html">
@@ -22,12 +23,33 @@ with tooltips, zoom and pan.
 
 | Visual element | Meaning |
 |----------------|---------|
-| Node **colour** | Health — green (healthy MI), amber (moderate), red (unhealthy) |
+| **Grade badge** | Project health A–F (LOC-weighted module scores) with trend vs previous run |
+| Node **colour** | Composite health score — green (≥75), amber (≥50), red (below) |
 | Node **size** | Lines of code |
-| **Pulse** ring | High git churn (recent changes) |
+| **Orange pulse** ring | Hotspot — recent churn × low health, where defects cluster |
 | **Spots** | Dead code detected by Vulture |
+| **Red edges** | Import cycles between submodules (always visible) |
 | **Rings** | Architectural layers defined in `canopy.yml` |
-| **Edges** | Import dependencies between modules |
+| Faint **blue edges** | Heaviest import dependencies (all edges on hover in HTML) |
+
+### The score
+
+Each module starts at 100 and loses points for named, auditable factors —
+the HTML tooltip shows the exact breakdown:
+
+| Factor | Penalty | Cap |
+|--------|---------|-----|
+| % of functions with cyclomatic complexity > 10 | `1.5 × pct` | −40 |
+| Worst function in the module | `1.5 × (CC − 10)` | −20 |
+| Dead symbols per function | `0.75 × pct` | −15 |
+| Test coverage (only when a report exists) | `25 × (1 − coverage)` | −25 |
+
+Maintainability Index is still collected and shown, but no longer drives
+the colour — MI penalises file *size* far more than actual complexity.
+
+Coverage is read from an existing `coverage.json` or `coverage.xml` in the
+project root (canopy never runs your tests). The score weights are
+configurable under `score:` in `canopy.yml`.
 
 ## Installation
 
@@ -76,8 +98,9 @@ project: myproject          # display name (default: directory name)
 source: src/myproject       # source root relative to project (default: ".")
 module_depth: 2             # how many levels to group (default: 2)
 
-ignore:                     # glob patterns to exclude (future)
-  - "tests/**"
+ignore:                     # glob patterns excluded from analysis,
+  - "vendored/**"           # relative to source (or project) root
+  - "**/generated_*.py"
 
 layers:                     # architectural ring grouping
   core:
@@ -94,10 +117,17 @@ vulture:
 git:
   churn_days: 30            # lookback window for churn (default: 30)
 
+score:
+  cc_threshold: 10          # a function above this CC counts as complex (default: 10)
+  complexity_spread: 1.5    # penalty per % of complex functions (default: 1.5)
+  worst_function: 1.5       # penalty per CC point of the worst function (default: 1.5)
+  dead_ratio: 0.75          # penalty per % of dead symbols (default: 0.75)
+  coverage_weight: 25       # max penalty for 0% coverage (default: 25)
+
 thresholds:
-  mi_healthy: 40            # MI score above this is green (default: 40)
-  mi_moderate: 20           # MI score above this is amber (default: 20)
-  churn_high: 20            # commits above this triggers pulse (default: 20)
+  score_healthy: 75         # score at or above this is green (default: 75)
+  score_moderate: 50        # score at or above this is amber (default: 50)
+  risk_hotspot: 0.4         # churn x unhealthiness above this pulses (default: 0.4)
   min_loc: 50               # modules below this LOC get collapsed (default: 50)
 
 output:
@@ -105,6 +135,9 @@ output:
   width: 1000               # SVG width in pixels (default: 1000)
   height: 800               # SVG height in pixels (default: 800)
 ```
+
+Each run appends to `canopy-history.json` next to the SVG; the grade badge
+shows the score delta against the previous run.
 
 ## GitHub Action
 
@@ -195,8 +228,9 @@ hover tooltips, click-to-pin, zoom (scroll) and pan (drag).
 - **Shallow clones** produce no churn data — use `fetch-depth: 0` in CI.
 - **`exclude_types`** in Vulture config is a v1 allowlist; per-module
   exclusions are not yet supported.
-- **`ignore` patterns** are declared in config but not yet wired through
-  collectors (planned for a future release).
+- **Cycles through the root package** (`from pkg import x` + `__init__.py`
+  re-exports) are intentionally not reported — only cycles between
+  submodules are.
 
 ## License
 

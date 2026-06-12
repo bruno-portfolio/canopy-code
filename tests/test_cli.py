@@ -25,7 +25,7 @@ class TestRunSuccess:
     @patch("canopy.cli._build_config")
     def test_run_exit_zero(self, mock_build, mock_collectors, mock_pipeline, mock_write):
         mock_build.return_value = MagicMock(source=".", output=MagicMock(path="out.svg"))
-        mock_collectors.return_value = ([], [], [], [])
+        mock_collectors.return_value = ([], [], [], [], [])
         mock_pipeline.return_value = (MagicMock(modules=[]), MagicMock())
 
         runner = CliRunner()
@@ -39,7 +39,7 @@ class TestRunSuccess:
     @patch("canopy.cli._build_config")
     def test_run_default_path(self, mock_build, mock_collectors, mock_pipeline, mock_write):
         mock_build.return_value = MagicMock(source=".", output=MagicMock(path="out.svg"))
-        mock_collectors.return_value = ([], [], [], [])
+        mock_collectors.return_value = ([], [], [], [], [])
         mock_pipeline.return_value = (MagicMock(modules=[]), MagicMock())
 
         runner = CliRunner()

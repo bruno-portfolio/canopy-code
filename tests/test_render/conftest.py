@@ -27,6 +27,9 @@ def make_mod(
     dead: int = 0,
     churn: int = 0,
     desc: str = "",
+    score: float = 100.0,
+    risk: float = 0.0,
+    cc_max: int = 0,
 ) -> Module:
     return Module(
         name=name,
@@ -38,6 +41,9 @@ def make_mod(
         churn=churn,
         layer=layer,
         desc=desc,
+        score=score,
+        risk=risk,
+        cc_max=cc_max,
     )
 
 

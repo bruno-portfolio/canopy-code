@@ -4,6 +4,12 @@ from dataclasses import dataclass, field
 
 
 @dataclass(frozen=True)
+class ScoreFactor:
+    label: str
+    penalty: float
+
+
+@dataclass(frozen=True)
 class Module:
     name: str
     lines: int
@@ -14,6 +20,12 @@ class Module:
     churn: int = 0
     layer: str = ""
     desc: str = ""
+    score: float = 100.0
+    cc_max: int = 0
+    n_cc_over: int = 0
+    coverage: float | None = None
+    risk: float = 0.0
+    factors: tuple[ScoreFactor, ...] = ()
 
 
 @dataclass(frozen=True)

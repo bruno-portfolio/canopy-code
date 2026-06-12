@@ -81,7 +81,7 @@
 </g>
 <g data-module="pkg.api">
 <circle cx="650.0" cy="480.0" r="55.0" fill="#d2992255" opacity="0.1" filter="url(#softGlow)"/>
-<circle cx="650.0" cy="480.0" r="22.0" fill="none" stroke="#bc8cff" stroke-width="1.5" opacity="0.4" filter="url(#churnPulse)"><animate attributeName="r" values="22.0;26.0;22.0" dur="3s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.4;0.1;0.4" dur="3s" repeatCount="indefinite"/></circle>
+<circle cx="650.0" cy="480.0" r="23.0" fill="none" stroke="#f0883e" stroke-width="1.8" opacity="0.6" filter="url(#churnPulse)"><animate attributeName="r" values="23.0;27.0;23.0" dur="2s" repeatCount="indefinite"/><animate attributeName="opacity" values="0.6;0.2;0.6" dur="2s" repeatCount="indefinite"/></circle>
 <circle cx="651.0" cy="481.0" r="22.0" fill="#000000" opacity="0.3"/>
 <circle cx="650.0" cy="480.0" r="22.0" fill="#d29922" filter="url(#nodeGlow)"/>
 <circle cx="650.0" cy="473.4" r="13.2" fill="#e3b341" opacity="0.15"/>
@@ -110,6 +110,22 @@
 <text x="500.0" y="650.0" font-family="monospace" font-size="7" font-weight="600" fill="#c9d1d9" text-anchor="middle" dy="0.35em">+3 more</text>
 </g>
 <circle cx="500.0" cy="400.0" r="50.0" fill="none" stroke="#da3633" stroke-width="0.5" stroke-dasharray="4 6" opacity="0.3"><animateTransform attributeName="transform" type="rotate" from="0 500.0 400.0" to="360 500.0 400.0" dur="60s" repeatCount="indefinite"/></circle>
-<text x="500.0" y="780.0" font-family="monospace" font-size="9" fill="#30363d" text-anchor="middle" dy="0.35em">4 modules | 1050 lines | 50% healthy 25% moderate 25% complex | 4 dead</text>
+<text x="28.0" y="30.0" font-family="monospace" font-size="15" font-weight="700" fill="#c9d1d9">golden-test</text>
+<text x="28.0" y="46.0" font-family="monospace" font-size="8" letter-spacing="2" fill="#8b949e">CODE HEALTH</text>
+<text x="26.0" y="86.0" font-family="monospace" font-size="44" font-weight="700" fill="#d29922">C</text>
+<text x="64.0" y="72.0" font-family="monospace" font-size="12" font-weight="600" fill="#c9d1d9">71/100</text>
+<circle cx="917.4" cy="25.0" r="2.5" fill="#1b1f23" stroke="#484f58" stroke-width="0.5"/>
+<text x="927.4" y="28.0" font-family="monospace" font-size="8" fill="#8b949e">Dead code</text>
+<line x1="861.4" y1="25.0" x2="871.4" y2="25.0" stroke="#f85149" stroke-width="1.5"/>
+<text x="876.4" y="28.0" font-family="monospace" font-size="8" fill="#8b949e">Cycle</text>
+<circle cx="804.6" cy="25.0" r="4" fill="none" stroke="#f0883e" stroke-width="1.5"/>
+<text x="814.6" y="28.0" font-family="monospace" font-size="8" fill="#8b949e">Hotspot</text>
+<circle cx="732.0" cy="25.0" r="4" fill="#da3633"/>
+<text x="742.0" y="28.0" font-family="monospace" font-size="8" fill="#8b949e">Unhealthy</text>
+<circle cx="664.8" cy="25.0" r="4" fill="#d29922"/>
+<text x="674.8" y="28.0" font-family="monospace" font-size="8" fill="#8b949e">Moderate</text>
+<circle cx="603.0" cy="25.0" r="4" fill="#2ea043"/>
+<text x="613.0" y="28.0" font-family="monospace" font-size="8" fill="#8b949e">Healthy</text>
+<text x="500.0" y="780.0" font-family="monospace" font-size="9" fill="#484f58" text-anchor="middle" dy="0.35em">4 modules | 1050 lines | 52% healthy 29% moderate 19% unhealthy (by loc) | 4 dead</text>
 <text x="985.0" y="790.0" font-family="monospace" font-size="10" fill="#161b22" text-anchor="end" dy="0.35em">canopy-code</text>
 </svg>

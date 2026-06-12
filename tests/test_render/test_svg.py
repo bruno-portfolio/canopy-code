@@ -148,7 +148,7 @@ class TestNodes:
     def test_healthy_color(self):
         t = make_theme()
         svg = render_svg(
-            make_pd(modules=[make_mod(mi=50.0)]),
+            make_pd(modules=[make_mod(score=85.0)]),
             make_layout(nodes=[make_node()]),
             t,
         )
@@ -157,7 +157,7 @@ class TestNodes:
     def test_moderate_color(self):
         t = make_theme()
         svg = render_svg(
-            make_pd(modules=[make_mod(mi=30.0)]),
+            make_pd(modules=[make_mod(score=60.0)]),
             make_layout(nodes=[make_node()]),
             t,
         )
@@ -166,7 +166,7 @@ class TestNodes:
     def test_complex_color(self):
         t = make_theme()
         svg = render_svg(
-            make_pd(modules=[make_mod(mi=10.0)]),
+            make_pd(modules=[make_mod(score=30.0)]),
             make_layout(nodes=[make_node()]),
             t,
         )
@@ -184,27 +184,32 @@ class TestNodes:
         assert "450.0" in svg
 
 
-# ── Churn Pulse ───────────────────────────────────────────────────────────
+# ── Hotspot Ring ──────────────────────────────────────────────────────────
 
 
-class TestChurnPulse:
+class TestHotspotRing:
     def test_animate_above_threshold(self):
+        t = make_theme()
         svg = render_svg(
-            make_pd(modules=[make_mod(churn=25)]),
+            make_pd(modules=[make_mod(churn=25, score=40.0, risk=0.5)]),
             make_layout(nodes=[make_node()]),
-            make_theme(),
+            t,
         )
         assert "<animate" in svg
+        assert t.hotspot_stroke in svg
 
     def test_no_animate_below_threshold(self):
+        t = make_theme()
         svg = render_svg(
-            make_pd(modules=[make_mod(churn=5)]),
+            make_pd(modules=[make_mod(churn=25, risk=0.05)]),
             make_layout(nodes=[make_node()]),
-            make_theme(),
+            t,
         )
         # Only animateTransform (core decoration) should be absent too
         # since no core layer module
         assert "<animate " not in svg
+        # hotspot stroke appears once: the legend swatch only
+        assert svg.count(t.hotspot_stroke) == 1
 
 
 # ── Dead Code Spots ───────────────────────────────────────────────────────
@@ -227,7 +232,8 @@ class TestDeadCodeSpots:
             make_layout(nodes=[make_node()]),
             t,
         )
-        assert t.dead_fill not in svg
+        # dead fill appears once: the legend swatch only
+        assert svg.count(t.dead_fill) == 1
 
     def test_spots_deterministic(self):
         pd = make_pd(modules=[make_mod(dead=5)])
@@ -250,13 +256,14 @@ class TestLabels:
         )
         assert "helpers" in svg
 
-    def test_truncation(self):
+    def test_truncation_middle_cut(self):
         svg = render_svg(
             make_pd(modules=[make_mod(name="pkg.very_long_name_here")]),
             make_layout(nodes=[make_node(name="pkg.very_long_name_here")]),
             make_theme(),
         )
-        assert "very_long.." in svg
+        # radius 20 -> limit 11: 5 head + ".." + 4 tail keeps both ends readable
+        assert "very_..here" in svg
 
     def test_strip_underscore(self):
         svg = render_svg(
@@ -343,7 +350,62 @@ class TestDependencies:
 
     def test_no_deps_no_lines(self):
         svg = render_svg(make_pd(deps=[]), make_layout(), make_theme())
-        assert "<line " not in svg
+        assert "data-from" not in svg
+
+    def test_cycle_edge_visible_in_static_svg(self):
+        t = make_theme()
+        svg = render_svg(
+            make_pd(
+                modules=[
+                    make_mod(name="pkg.a", layer="infra"),
+                    make_mod(name="pkg.b", layer="infra"),
+                ],
+                deps=[make_dep("pkg.a", "pkg.b"), make_dep("pkg.b", "pkg.a")],
+            ),
+            make_layout(
+                nodes=[make_node(name="pkg.a", x=-100, y=0), make_node(name="pkg.b", x=100, y=0)]
+            ),
+            t,
+        )
+        assert 'data-cycle="1"' in svg
+        assert svg.count(t.cycle_stroke) >= 3  # legend + two cycle edges
+
+    def test_heaviest_dep_faintly_visible(self):
+        t = make_theme()
+        svg = render_svg(
+            make_pd(
+                modules=[
+                    make_mod(name="pkg.a", layer="infra"),
+                    make_mod(name="pkg.b", layer="infra"),
+                ],
+                deps=[make_dep("pkg.a", "pkg.b", weight=9.0)],
+            ),
+            make_layout(
+                nodes=[make_node(name="pkg.a", x=-100, y=0), make_node(name="pkg.b", x=100, y=0)]
+            ),
+            t,
+        )
+        assert f'opacity="{t.dep_visible_opacity}"' in svg
+
+    def test_grade_letter_and_project_name_in_header(self):
+        svg = render_svg(
+            make_pd(modules=[make_mod(score=95.0)], name="myproj"),
+            make_layout(nodes=[make_node()]),
+            make_theme(),
+        )
+        assert "myproj" in svg
+        assert "CODE HEALTH" in svg
+        assert ">A</text>" in svg
+
+    def test_delta_arrow_rendered(self):
+        svg = render_svg(
+            make_pd(modules=[make_mod()]),
+            make_layout(nodes=[make_node()]),
+            make_theme(),
+            delta=2.5,
+        )
+        assert "&#9650;" in svg
+        assert "2.5" in svg
 
 
 # ── Stats Bar ─────────────────────────────────────────────────────────────
@@ -429,10 +491,19 @@ class TestGoldenSvg:
     @staticmethod
     def _full_svg() -> str:
         modules = [
-            make_mod(name="app", lines=500, mi=60.0, layer="core"),
-            make_mod(name="pkg.api", lines=300, mi=35.0, layer="infra", churn=25),
-            make_mod(name="pkg.db", lines=200, mi=15.0, layer="infra", dead=4),
-            make_mod(name="_collapsed_outer", lines=50, mi=45.0, layer="outer", desc="+3 more"),
+            make_mod(name="app", lines=500, mi=60.0, layer="core", score=92.0),
+            make_mod(
+                name="pkg.api", lines=300, mi=35.0, layer="infra", churn=25, score=55.0, risk=0.45
+            ),
+            make_mod(name="pkg.db", lines=200, mi=15.0, layer="infra", dead=4, score=38.0),
+            make_mod(
+                name="_collapsed_outer",
+                lines=50,
+                mi=45.0,
+                layer="outer",
+                desc="+3 more",
+                score=80.0,
+            ),
         ]
         deps = [
             make_dep("app", "pkg.api", 0.8),
