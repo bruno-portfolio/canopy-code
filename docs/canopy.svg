@@ -152,16 +152,16 @@
 <text x="449.6" y="386.6" font-family="monospace" font-size="7" fill="#484f58" text-anchor="middle" dy="0.35em">18 loc</text>
 </g>
 <g data-module="canopy.collectors">
-<circle cx="500.0" cy="514.3" r="41.8" fill="#d2992255" opacity="0.1" filter="url(#softGlow)"/>
-<circle cx="501.0" cy="515.3" r="16.7" fill="#000000" opacity="0.3"/>
-<circle cx="500.0" cy="514.3" r="16.7" fill="#d29922" filter="url(#nodeGlow)"/>
-<circle cx="500.0" cy="509.3" r="10.0" fill="#e3b341" opacity="0.15"/>
-<circle cx="497.5" cy="508.4" r="3.3" fill="#ffffff" opacity="0.08"/>
+<circle cx="500.0" cy="514.3" r="43.1" fill="#d2992255" opacity="0.1" filter="url(#softGlow)"/>
+<circle cx="501.0" cy="515.3" r="17.2" fill="#000000" opacity="0.3"/>
+<circle cx="500.0" cy="514.3" r="17.2" fill="#d29922" filter="url(#nodeGlow)"/>
+<circle cx="500.0" cy="509.1" r="10.3" fill="#e3b341" opacity="0.15"/>
+<circle cx="497.4" cy="508.3" r="3.4" fill="#ffffff" opacity="0.08"/>
 <circle cx="498.7" cy="513.3" r="2.4" fill="#1b1f23" opacity="0.7"/>
-<circle cx="503.7" cy="508.7" r="2.0" fill="#1b1f23" opacity="0.7"/>
-<circle cx="491.5" cy="515.6" r="2.3" fill="#1b1f23" opacity="0.7"/>
-<circle cx="497.3" cy="512.8" r="2.6" fill="#1b1f23" opacity="0.7"/>
-<circle cx="494.2" cy="508.8" r="1.5" fill="#1b1f23" opacity="0.7"/>
+<circle cx="503.8" cy="508.5" r="2.0" fill="#1b1f23" opacity="0.7"/>
+<circle cx="491.3" cy="515.6" r="2.3" fill="#1b1f23" opacity="0.7"/>
+<circle cx="497.2" cy="512.8" r="2.6" fill="#1b1f23" opacity="0.7"/>
+<circle cx="494.0" cy="508.6" r="1.5" fill="#1b1f23" opacity="0.7"/>
 <text x="500.0" y="514.3" font-family="monospace" font-size="8" font-weight="600" fill="#c9d1d9" text-anchor="middle" dy="0.35em">collectors</text>
 </g>
 <g data-module="canopy.layout">
@@ -207,6 +207,6 @@
 <text x="674.8" y="28.0" font-family="monospace" font-size="8" fill="#8b949e">Moderate</text>
 <circle cx="603.0" cy="25.0" r="4" fill="#2ea043"/>
 <text x="613.0" y="28.0" font-family="monospace" font-size="8" fill="#8b949e">Healthy</text>
-<text x="500.0" y="780.0" font-family="monospace" font-size="9" fill="#484f58" text-anchor="middle" dy="0.35em">12 modules | 3694 lines | 73% healthy 27% moderate 0% unhealthy (by loc) | 8 dead</text>
+<text x="500.0" y="780.0" font-family="monospace" font-size="9" fill="#484f58" text-anchor="middle" dy="0.35em">12 modules | 3724 lines | 72% healthy 28% moderate 0% unhealthy (by loc) | 8 dead</text>
 <text x="985.0" y="790.0" font-family="monospace" font-size="10" fill="#161b22" text-anchor="end" dy="0.35em">canopy-code</text>
 </svg>
